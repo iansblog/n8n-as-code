@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Configuration
-const FOLDER_NAME = 'synced_workflows';
+const FOLDER_NAME = 'workflows';
 const TARGET_DIR = path.join(process.cwd(), FOLDER_NAME);
 
 /**
@@ -56,7 +56,7 @@ if (successInit) {
   // Premier commit automatique pour sécuriser le repo
   runCommand('git add .', TARGET_DIR);
   runCommand('git commit -m "Initialisation automatique du dépôt workflows"', TARGET_DIR);
-  
+
   console.log(`   ✅ Succès ! Le dossier est prêt à être utilisé.`);
 } else {
   console.log(`   ⚠️  Échec de l'initialisation Git (Git est-il installé ?).`);

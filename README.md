@@ -1,78 +1,91 @@
-# n8n-as-code 🚀
+# 🚀 n8n-as-code
 
-> **Stop clicking. Start coding.**
+**n8n-as-code** est un écosystème conçu pour gérer vos workflows n8n comme du code. Il transforme vos automations en fichiers JSON locaux synchronisés, permettant le versioning (Git), l'édition assistée par IA et une intégration fluide dans VS Code.
 
-**n8n-as-code** is a bidirectional synchronization tool between n8n and your local file system. It transforms your n8n workflows into clean, editable, and versionable JSON files.
+---
 
-The **main goal**? Enable AI Agents (Cursor, Copilot, Windsurf) to generate and modify your n8n workflows directly from your code editor, bypassing the graphical interface.
+## 🏗 Architecture (Monorepo)
 
-## ✨ Why use this tool?
+Le projet est maintenant structuré en monorepo pour une meilleure modularité :
 
-* **AI-First Workflow:** Ask your AI "Create a workflow that scrapes Google News" inside VS Code, and watch it appear instantly in n8n.
-* **GitOps Ready:** Finally version your workflows properly. The script sanitizes unnecessary metadata (dynamic IDs, execution stats) so `git diff` shows only the actual logic.
-* **Bidirectional Sync:**
-    * Modify in VS Code ➔ Immediate update in n8n.
-    * Modify in n8n ➔ Immediate update of the local file.
+-   **`packages/core`** : La bibliothèque de base contenant la logique de synchronisation, les clients API et le nettoyage des JSON.
+-   **`packages/cli`** : L'interface en ligne de commande (`n8n-sync`).
+-   **`packages/vscode-extension`** : L'extension VS Code pour éditer vos workflows avec retour visuel immédiat.
 
 ---
 
 ## 🛠 Installation
 
-### Prerequisites
-* Node.js (v16+)
-* An active n8n instance (local or cloud)
-
-### Setup
-
-1.  **Clone this repository:**
-    ```bash
-    git clone https://github.com/EtienneLescot/n8n-as-code.git
-    cd n8n-as-code
-    ```
-
-2.  **Install dependencies:**
+1.  **Cloner le dépôt**
+2.  **Installer les dépendances** :
     ```bash
     npm install
     ```
-
-3.  **Configure your environment:**
-    Create a `.env` file at the root:
-
-    ```properties
-    N8N_HOST=http://localhost:5678
-    # Get your API key in n8n > Settings > Developer API
-    N8N_API_KEY=your_api_key_here
+3.  **Compiler le projet** :
+    ```bash
+    npm run build
+    ```
+4.  **Configuration** : Créez un fichier `.env` à la racine :
+    ```env
+    N8N_HOST=https://votre-instance.n8n.cloud
+    N8N_API_KEY=votre_cle_api
     ```
 
 ---
 
-## 🚀 Usage
+## � Usage : CLI (`@n8n-as-code/cli`)
 
-Simply run the sync script:
+Le CLI vous permet de synchroniser vos workflows depuis n'importe quel terminal.
 
-```bash
-node sync.js
-```
+### Commandes disponibles :
+
+-   **`node packages/cli/dist/index.js pull`** : Télécharge tous vos workflows actifs vers le dossier local `workflows/`.
+-   **`node packages/cli/dist/index.js watch`** : Lance la synchronisation bidirectionnelle en temps réel. Toute modification locale est poussée, et toute modification distante est récupérée via polling.
+-   **`node packages/cli/dist/index.js push`** : Détecte les nouveaux fichiers locaux et les crée sur votre instance n8n.
 
 ---
 
-## 📁 Managing `synced_workflows` Directory
+## 🔌 VS Code Extension
 
-The `synced_workflows` directory is excluded from the main repository via `.gitignore`. This allows you to manage your workflows independently. The repository is automatically initialized when you run `npm install` thanks to the `postinstall` script.
+L'extension apporte la puissance de `n8n-as-code` directement dans votre éditeur.
 
-### Optional: Connect to a Remote Repository
+### Fonctionnalités :
+-   **Push on Save** : Sauvegardez un fichier `.json` dans votre dossier de workflows, et il est instantanément mis à jour sur n8n.
+-   **Status Bar** : Gardez un œil sur l'état de la synchronisation (Spinning, Error, Success).
+-   **Commandes** : `F1` -> `n8n: Pull Workflows` pour tout rafraîchir.
 
-If you want to sync your workflows to a remote repository, follow these steps:
+### Développement :
+Pour tester l'extension, ouvrez le dossier `packages/vscode-extension` et appuyez sur `F5`.
 
-1. Navigate to the `synced_workflows` directory:
+---
+
+## 🤖 AI Context (AGENTS.md)
+
+Le projet supporte l'injection de contexte pour les agents IA (comme Cursor ou GitHub Copilot). 
+Générez votre contexte via le Core pour aider l'IA à comprendre votre instance n8n spécifique.
+
+---
+
+## 📁 Gestion du dossier `workflows/`
+
+Le dossier `workflows/` est exclu du dépôt principal via `.gitignore`. Cela vous permet de gérer vos workflows indépendamment (versioning par client, par projet, etc.). Le dépôt est automatiquement initialisé lorsque vous lancez `npm install` grâce au script `postinstall`.
+
+### Optionnel : Connecter à un dépôt distant
+
+Si vous souhaitez sauvegarder vos workflows sur un dépôt distant :
+
+1. Entrez dans le dossier `workflows/` :
    ```bash
-   cd synced_workflows
+   cd workflows
    ```
 
-2. Connect to your remote repository:
+2. Connectez votre dépôt distant :
    ```bash
-   git remote add origin <your-remote-repo-url>
+   git remote add origin <votre-repo-url>
    git push -u origin main
    ```
 
-Now, your workflows are versioned independently of the main repository.
+---
+
+## 📄 Licence
+MIT

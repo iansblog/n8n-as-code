@@ -37,11 +37,11 @@ package-lock.json
 ehthumbs.db
 Thumbs.db
 
-# Exclude synced_workflows directory from the main repository
-synced_workflows/
+# Exclude workflows directory (managed as independent repo)
+workflows/
 
-# --- Extension VS Code ---
-# On ignore le dossier de compilation et le paquet final
-vscode-extension/out/
-vscode-extension/node_modules/
+# --- Packages build artifacts ---
+packages/*/dist/
+packages/*/out/
+packages/*/node_modules/
 *.vsix
