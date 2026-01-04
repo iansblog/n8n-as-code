@@ -47,6 +47,21 @@ export class SyncManager extends EventEmitter {
     }
 
     /**
+     * Loads remote workflows to populate the fileToIdMap without syncing content.
+     */
+    async loadRemoteState() {
+        this.emit('log', '🔄 [SyncManager] Loading remote state...');
+        const remoteWorkflows = await this.client.getAllWorkflows();
+
+        // Populate map
+        for (const wf of remoteWorkflows) {
+            if (this.shouldIgnore(wf)) continue;
+            const filename = `${this.safeName(wf.name)}.json`;
+            this.fileToIdMap.set(filename, wf.id);
+        }
+    }
+
+    /**
      * Scans n8n instance and updates local files (Downstream Sync)
      */
     async syncDown() {

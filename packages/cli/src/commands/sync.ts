@@ -40,9 +40,8 @@ export class SyncCommand extends BaseCommand {
                 if (msg.includes('Created') || msg.includes('Update')) spinner.info(msg);
             });
 
-            // Note: Currently syncUpMissing() only handles CREATION of orphans.
-            // Full Push (forcing local state to remote) would require more logic in Core if needed.
-            // For now, we assume "Push" means "Upload what's missing".
+            // Prevent creation of duplicates by loading remote state first
+            await syncManager.loadRemoteState();
             await syncManager.syncUpMissing();
 
             spinner.succeed('Push complete.');
