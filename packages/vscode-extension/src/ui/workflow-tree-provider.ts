@@ -60,8 +60,8 @@ export class WorkflowItem extends vscode.TreeItem {
         this.iconPath = this.getIcon(workflow.status);
 
         this.command = {
-            command: 'n8n.openWorkflow',
-            title: 'Open Workflow',
+            command: 'n8n.openBoard',
+            title: 'Open Board',
             arguments: [workflow]
         };
     }

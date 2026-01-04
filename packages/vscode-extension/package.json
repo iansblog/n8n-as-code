@@ -44,7 +44,7 @@
                 "title": "n8n: Push Workflows (Sync Up)"
             },
             {
-                "command": "n8n.openWorkflow",
+                "command": "n8n.openBoard",
                 "title": "Open Board (Webview)",
                 "icon": "$(browser)"
             },
@@ -57,6 +57,16 @@
                 "command": "n8n.openSplit",
                 "title": "Open Split View",
                 "icon": "$(split-horizontal)"
+            },
+            {
+                "command": "n8n.pushWorkflow",
+                "title": "Push (Sync Up)",
+                "icon": "$(cloud-upload)"
+            },
+            {
+                "command": "n8n.pullWorkflow",
+                "title": "Pull (Sync Down)",
+                "icon": "$(cloud-download)"
             },
             {
                 "command": "n8n.refresh",
@@ -81,7 +91,7 @@
             ],
             "view/item/context": [
                 {
-                    "command": "n8n.openWorkflow",
+                    "command": "n8n.openBoard",
                     "group": "inline"
                 },
                 {
@@ -89,7 +99,7 @@
                     "group": "inline"
                 },
                 {
-                    "command": "n8n.openWorkflow",
+                    "command": "n8n.openBoard",
                     "group": "1_open@1"
                 },
                 {
@@ -101,8 +111,12 @@
                     "group": "1_open@3"
                 },
                 {
-                    "command": "n8n.push",
-                    "group": "2_sync"
+                    "command": "n8n.pushWorkflow",
+                    "group": "2_sync@1"
+                },
+                {
+                    "command": "n8n.pullWorkflow",
+                    "group": "2_sync@2"
                 }
             ]
         },

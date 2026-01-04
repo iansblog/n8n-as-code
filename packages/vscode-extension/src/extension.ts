@@ -52,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
-        vscode.commands.registerCommand('n8n.openWorkflow', (arg: any) => {
+        vscode.commands.registerCommand('n8n.openBoard', (arg: any) => {
             const wf = arg?.workflow ? arg.workflow : arg;
             if (!wf) return;
 
@@ -100,6 +100,43 @@ export async function activate(context: vscode.ExtensionContext) {
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
             if (host) {
                 WorkflowWebview.createOrShow(wf, host, vscode.ViewColumn.Two);
+            }
+        }),
+
+        vscode.commands.registerCommand('n8n.pushWorkflow', async (arg: any) => {
+            const wf = arg?.workflow ? arg.workflow : arg;
+            if (!wf || !syncManager || !wf.filename) return;
+
+            statusBar.showSyncing();
+            try {
+                // We reuse handleLocalFileChange which does the "Push" (Update/Create) logic
+                const absPath = path.join(syncManager['config'].directory, wf.filename);
+                await syncManager.handleLocalFileChange(absPath);
+
+                treeProvider.refresh();
+                statusBar.showSynced();
+                vscode.window.showInformationMessage(`✅ Pushed "${wf.name}"`);
+            } catch (e: any) {
+                statusBar.showError(e.message);
+                vscode.window.showErrorMessage(`Push Error: ${e.message}`);
+            }
+        }),
+
+        vscode.commands.registerCommand('n8n.pullWorkflow', async (arg: any) => {
+            const wf = arg?.workflow ? arg.workflow : arg;
+            if (!wf || !syncManager || !wf.id) return;
+
+            statusBar.showSyncing();
+            try {
+                if (wf.filename) {
+                    await syncManager.pullWorkflow(wf.filename, wf.id);
+                    treeProvider.refresh();
+                    statusBar.showSynced();
+                    vscode.window.showInformationMessage(`✅ Pulled "${wf.name}"`);
+                }
+            } catch (e: any) {
+                statusBar.showError(e.message);
+                vscode.window.showErrorMessage(`Pull Error: ${e.message}`);
             }
         }),
 

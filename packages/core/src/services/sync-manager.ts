@@ -156,16 +156,24 @@ export class SyncManager extends EventEmitter {
 
             this.fileToIdMap.set(filename, wf.id);
 
-            // Fetch full details
-            const fullWf = await this.client.getWorkflow(wf.id);
-            if (!fullWf) continue;
-
-            const cleanRemote = WorkflowSanitizer.cleanForStorage(fullWf);
-            const filePath = this.getFilePath(filename);
-
-            // Write to disk
-            await this.writeLocalFile(filePath, cleanRemote, filename);
+            // Reuse the single pull logic
+            await this.pullWorkflow(filename, wf.id);
         }
+    }
+
+    /**
+     * Pulls a single workflow by ID and writes to filename
+     */
+    async pullWorkflow(filename: string, id: string) {
+        // Fetch full details
+        const fullWf = await this.client.getWorkflow(id);
+        if (!fullWf) return;
+
+        const cleanRemote = WorkflowSanitizer.cleanForStorage(fullWf);
+        const filePath = this.getFilePath(filename);
+
+        // Write to disk
+        await this.writeLocalFile(filePath, cleanRemote, filename);
     }
 
     /**
