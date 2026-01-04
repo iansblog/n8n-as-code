@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { WatchCommand } from './commands/watch.js';
 import { SyncCommand } from './commands/sync.js';
+import { InitAiCommand } from './commands/init-ai.js';
 import chalk from 'chalk';
 
 const program = new Command();
@@ -28,5 +29,7 @@ program.command('push')
     .action(async () => {
         await new SyncCommand().push();
     });
+
+new InitAiCommand(program);
 
 program.parse();

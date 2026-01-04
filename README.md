@@ -61,8 +61,27 @@ Pour tester l'extension, ouvrez le dossier `packages/vscode-extension` et appuye
 
 ## 🤖 AI Context (AGENTS.md)
 
-Le projet supporte l'injection de contexte pour les agents IA (comme Cursor ou GitHub Copilot). 
-Générez votre contexte via le Core pour aider l'IA à comprendre votre instance n8n spécifique.
+Le projet supporte l'injection de contexte pour les agents IA (comme Cursor, Windsurf ou GitHub Copilot). 
+
+### 🚀 Initialisation Rapide
+
+Deux méthodes pour générer le contexte IA :
+
+1.  **Via VS Code (Recommandé)** :
+    -   Ouvrez la Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+    -   Exécutez `n8n: Initialize AI Context`.
+    -   *(Note)* : L'extension vous proposera aussi de le faire automatiquement si `AGENTS.md` est manquant.
+
+2.  **Via Terminal** :
+    ```bash
+    n8n init-ai
+    ```
+
+### Ce qui est généré :
+-   📄 **`AGENTS.md`** : Instructions système pour l'IA (rôle, version n8n, bonnes pratiques).
+-   🛡️ **`n8n-schema.json`** : Schéma de validation strict pour les workflows.
+-   🧩 **`.vscode/n8n.code-snippets`** : Bibliothèque de snippets enrichie (Webhook, Code, HTTP...) adaptée à votre version.
+-   ⚙️ **`.cursorrules` / `.clinerules`** : Règles spécifiques pour les IDEs IA.
 
 ---
 

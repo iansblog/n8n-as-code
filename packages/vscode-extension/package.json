@@ -72,10 +72,20 @@
                 "command": "n8n.refresh",
                 "title": "Refresh",
                 "icon": "$(refresh)"
+            },
+            {
+                "command": "n8n.initializeAI",
+                "title": "Initialize AI Context",
+                "icon": "$(sparkle)"
             }
         ],
         "menus": {
             "view/title": [
+                {
+                    "command": "n8n.initializeAI",
+                    "group": "navigation",
+                    "when": "view == n8n-explorer"
+                },
                 {
                     "command": "n8n.push",
                     "group": "navigation"

@@ -10,30 +10,71 @@ export class SchemaGenerator {
      * This schema can be used by AI agents to validate node parameters.
      */
     async generateSchema(outputPath: string): Promise<void> {
-        // Note: In a real implementation, we would hit /node-types endpoint.
-        // For this version (Core Porting), we will create a placeholder or minimal schema
-        // as the full node-type introspection can be heavy.
-
-        // TODO: Implement actual /node-types fetching if API supports it standardly
-        // or infer from installed nodes.
-
+        // Defines the structure of an n8n workflow JSON
         const schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "n8n Workflow Schema",
+            "title": "n8n Workflow Structure",
+            "description": "Validation schema for n8n workflow JSON files",
             "type": "object",
+            "required": ["nodes", "connections"],
             "properties": {
+                "name": { "type": "string", "description": "Name of the workflow" },
                 "nodes": {
                     "type": "array",
+                    "description": "List of nodes in the workflow",
                     "items": {
                         "type": "object",
+                        "required": ["parameters", "id", "name", "type", "typeVersion", "position"],
                         "properties": {
-                            "type": { "type": "string" },
-                            "parameters": { "type": "object" }
-                        },
-                        "required": ["type", "parameters"]
+                            "parameters": {
+                                "type": "object",
+                                "description": "Configuration parameters for the node"
+                            },
+                            "id": { "type": "string", "description": "Unique UUID of the node" },
+                            "name": { "type": "string", "description": "Display name of the node" },
+                            "type": { "type": "string", "description": "Node type identifier (e.g., n8n-nodes-base.httpRequest)" },
+                            "typeVersion": { "type": ["number", "object"], "description": "Version of the node type" },
+                            "position": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": { "type": "number" },
+                                "description": "[x, y] coordinates on the canvas"
+                            },
+                            "notesInFlow": { "type": "boolean" },
+                            "notes": { "type": "string" }
+                        }
                     }
                 },
-                "connections": { "type": "object" }
+                "connections": {
+                    "type": "object",
+                    "description": "Connections between nodes",
+                    "patternProperties": {
+                        "^.*$": {
+                            "type": "object",
+                            "patternProperties": {
+                                "^main$": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "required": ["node", "type", "index"],
+                                            "properties": {
+                                                "node": { "type": "string", "description": "Target node name" },
+                                                "type": { "type": "string", "enum": ["main"], "default": "main" },
+                                                "index": { "type": "number", "default": 0 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "settings": { "type": "object" },
+                "staticData": { "type": ["object", "null"] },
+                "pinData": { "type": "object" }
             }
         };
 

@@ -46,3 +46,9 @@ packages/*/out/
 packages/*/node_modules/
 *.vsix
 *.tsbuildinfo
+
+# --- AI Context Artifacts (Generated) ---
+AGENTS.md
+n8n-schema.json
+.cursorrules
+.clinerules

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { SyncManager, N8nApiClient, IN8nCredentials, IWorkflowStatus } from '@n8n-as-code/core';
+import { SyncManager, N8nApiClient, IN8nCredentials, IWorkflowStatus, SchemaGenerator, AiContextGenerator, SnippetGenerator } from '@n8n-as-code/core';
 import { StatusBar } from './ui/status-bar.js';
 import { WorkflowTreeProvider } from './ui/workflow-tree-provider.js';
 import { WorkflowWebview } from './ui/workflow-webview.js';
@@ -142,6 +142,55 @@ export async function activate(context: vscode.ExtensionContext) {
 
         vscode.commands.registerCommand('n8n.refresh', () => {
             treeProvider.refresh();
+        }),
+
+        vscode.commands.registerCommand('n8n.initializeAI', async () => {
+            if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+                vscode.window.showErrorMessage('No workspace open.');
+                return;
+            }
+
+            // Re-use client from syncManager or init new logic if needed. 
+            // We should ensure client is ready.
+            if (!syncManager) await initializeSyncManager();
+
+            // We need a client. If initializeSyncManager failed/no creds, we can't proceed properly
+            // But actually, we need the credentials.
+            const config = vscode.workspace.getConfiguration('n8n');
+            const host = config.get<string>('host') || process.env.N8N_HOST || '';
+            const apiKey = config.get<string>('apiKey') || process.env.N8N_API_KEY || '';
+
+            if (!host || !apiKey) {
+                vscode.window.showErrorMessage('n8n: Host/API Key missing. Cannot initialize AI context.');
+                return;
+            }
+
+            const client = new N8nApiClient({ host, apiKey });
+            const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "n8n: Initializing AI Context...",
+                cancellable: false
+            }, async (progress) => {
+                try {
+                    progress.report({ message: "Generating Schema..." });
+                    const schemaGen = new SchemaGenerator(client);
+                    await schemaGen.generateSchema(path.join(rootPath, 'n8n-schema.json'));
+
+                    progress.report({ message: "Generating AGENTS.md..." });
+                    const contextGen = new AiContextGenerator(client);
+                    await contextGen.generate(rootPath);
+
+                    progress.report({ message: "Fetching Snippets..." });
+                    const snippetGen = new SnippetGenerator(client);
+                    await snippetGen.generate(rootPath);
+
+                    vscode.window.showInformationMessage('✨ n8n AI Context Initialized! (AGENTS.md, Schema, Snippets)');
+                } catch (e: any) {
+                    vscode.window.showErrorMessage(`AI Init Failed: ${e.message}`);
+                }
+            });
         })
     );
 
@@ -214,6 +263,18 @@ async function initializeSyncManager() {
     // Wire up logs
     syncManager.on('error', (msg) => console.error(msg));
     syncManager.on('log', (msg) => console.log(msg));
+
+    // Check for AI Context
+    const agentsPath = path.join(workspaceRoot, 'AGENTS.md');
+    if (!fs.existsSync(agentsPath)) {
+        const answer = await vscode.window.showInformationMessage(
+            'n8n-as-code: AI Context (AGENTS.md) is missing. Initialize it now for better AI assistance?',
+            'Yes', 'No'
+        );
+        if (answer === 'Yes') {
+            vscode.commands.executeCommand('n8n.initializeAI');
+        }
+    }
 }
 
 export function deactivate() { }

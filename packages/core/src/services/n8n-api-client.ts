@@ -62,4 +62,53 @@ export class N8nApiClient {
             return false;
         }
     }
+
+    async getHealth(): Promise<{ version: string }> {
+        try {
+            // 1. Try public endpoint if available (some versions)
+            try {
+                const res = await this.client.get('/healthz');
+                if (res.data && res.data.version) return { version: res.data.version };
+            } catch { }
+
+            // 2. Scraping Root Page as fallback (Using raw axios to avoid API headers)
+            const baseURL = this.client.defaults.baseURL;
+            const res = await axios.get(`${baseURL}/`);
+            const html = res.data;
+
+            // Look for "release":"n8n@X.Y.Z" probably inside n8n:config:sentry meta (Base64 encoded)
+            const sentryMatch = html.match(/name="n8n:config:sentry"\s+content="([^"]+)"/);
+            if (sentryMatch && sentryMatch[1]) {
+                const decoded = Buffer.from(sentryMatch[1], 'base64').toString('utf-8');
+                const releaseMatch = decoded.match(/"release":"n8n@([^"]+)"/);
+                if (releaseMatch && releaseMatch[1]) {
+                    return { version: releaseMatch[1] };
+                }
+            }
+
+            // Fallback: Check plain text just in case
+            const releaseRegex = /"release":"n8n@([^"]+)"/;
+            const plainMatch = html.match(releaseRegex);
+            if (plainMatch && plainMatch[1]) return { version: plainMatch[1] };
+
+            // Look for other common patterns
+            const metaMatch = html.match(/n8n version: ([0-9.]+)/i);
+            if (metaMatch && metaMatch[1]) return { version: metaMatch[1] };
+
+            return { version: '1.0+' };
+        } catch {
+            return { version: 'Unknown' };
+        }
+    }
+
+    async getNodeTypes(): Promise<any[]> {
+        try {
+            // Unofficial/Internal endpoint often used by frontend
+            const res = await this.client.get('/rest/node-types');
+            return res.data;
+        } catch {
+            // Fallback: If REST API not accessible, return empty
+            return [];
+        }
+    }
 }
