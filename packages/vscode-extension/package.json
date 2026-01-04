@@ -58,6 +58,7 @@
         "@types/node": "^18.0.0"
     },
     "scripts": {
+        "build": "tsc -b",
         "compile": "tsc -b",
         "watch": "tsc -b -w"
     }
