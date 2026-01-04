@@ -84,7 +84,7 @@
                 {
                     "command": "n8n.initializeAI",
                     "group": "navigation",
-                    "when": "view == n8n-explorer"
+                    "when": "view == n8n-explorer.workflows"
                 },
                 {
                     "command": "n8n.push",
