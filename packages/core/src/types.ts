@@ -20,6 +20,22 @@ export interface ITag {
     name: string;
 }
 
+export enum WorkflowSyncStatus {
+    SYNCED = 'SYNCED',
+    LOCAL_MODIFIED = 'LOCAL_MODIFIED',
+    REMOTE_MODIFIED = 'REMOTE_MODIFIED', // Note: Hard to detect without polling
+    MISSING_LOCAL = 'MISSING_LOCAL', // On n8n but not on disk (should not happen after syncDown)
+    MISSING_REMOTE = 'MISSING_REMOTE' // On disk but not on n8n
+}
+
+export interface IWorkflowStatus {
+    id: string;
+    name: string;
+    filename: string;
+    active: boolean;
+    status: WorkflowSyncStatus;
+}
+
 export interface ISyncConfig {
     directory: string;
     pollIntervalMs: number;

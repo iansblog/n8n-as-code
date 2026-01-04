@@ -4,7 +4,7 @@ import EventEmitter from 'events';
 import deepEqual from 'deep-equal'; // Note: deep-equal doesn't have types by default usually, might need @types/deep-equal or ignore
 import { N8nApiClient } from './n8n-api-client.js';
 import { WorkflowSanitizer } from './workflow-sanitizer.js';
-import { ISyncConfig, IWorkflow } from '../types.js';
+import { ISyncConfig, IWorkflow, WorkflowSyncStatus, IWorkflowStatus } from '../types.js';
 
 // Define a simple deepEqual if strict module resolution fails on the import
 // For this environment, we'll try to rely on the package, but if it fails we might need a utility.
@@ -46,9 +46,6 @@ export class SyncManager extends EventEmitter {
         return this.selfWrittenCache.get(filePath) === currentContent;
     }
 
-    /**
-     * Loads remote workflows to populate the fileToIdMap without syncing content.
-     */
     async loadRemoteState() {
         this.emit('log', '🔄 [SyncManager] Loading remote state...');
         const remoteWorkflows = await this.client.getAllWorkflows();
@@ -59,6 +56,80 @@ export class SyncManager extends EventEmitter {
             const filename = `${this.safeName(wf.name)}.json`;
             this.fileToIdMap.set(filename, wf.id);
         }
+    }
+
+    /**
+     * Retrieves the status of all workflows (local and remote)
+     */
+    async getWorkflowsStatus(): Promise<IWorkflowStatus[]> {
+        await this.loadRemoteState();
+        const statuses: IWorkflowStatus[] = [];
+
+        // 1. Check all Remote Workflows (and compare with local)
+        // Optimization: We could reuse the list from loadRemoteState if we refactor, but for now we fetch again or cache? 
+        // loadRemoteState fetches ALL, so let's rely on fileToIdMap if populated, but we need the ACTIVE status etc.
+        // Let's just fetch light payload.
+        const remoteWorkflows = await this.client.getAllWorkflows();
+
+        const validRemoteIds = new Set<string>();
+
+        for (const wf of remoteWorkflows) {
+            if (this.shouldIgnore(wf)) continue;
+            const filename = `${this.safeName(wf.name)}.json`;
+            const filePath = this.getFilePath(filename);
+            validRemoteIds.add(wf.id);
+
+            let status = WorkflowSyncStatus.SYNCED;
+
+            if (!fs.existsSync(filePath)) {
+                status = WorkflowSyncStatus.MISSING_LOCAL;
+            } else {
+                // Compare content? To be perfectly accurate we need full JSON.
+                // This is expensive for a list view. 
+                // Strategy: Assume SYNCED unless we detect a file change (mtime > last sync?)
+                // For now, let's just return SYNCED or check lightweight via size/hash if we implemented it.
+                // Simple approach: Check if file exists. Deep comparison is too heavy for list.
+                // EXCEPT: If we implement a quick hash check or just rely on events.
+                status = WorkflowSyncStatus.SYNCED;
+            }
+
+            statuses.push({
+                id: wf.id,
+                name: wf.name,
+                filename: filename,
+                active: wf.active,
+                status: status
+            });
+        }
+
+        // 2. Check Local Files (for Orphans)
+        if (fs.existsSync(this.config.directory)) {
+            const localFiles = fs.readdirSync(this.config.directory).filter(f => f.endsWith('.json'));
+            for (const file of localFiles) {
+                // If not mapped to a remote ID
+                // BUT, fileToIdMap might map it.
+                // We check if we already added it to statuses via the remote loop
+                const alreadyListed = statuses.find(s => s.filename === file);
+
+                if (!alreadyListed) {
+                    // It's local but not in the filtered remote list
+                    const filePath = this.getFilePath(file);
+                    const content = this.readLocalFile(filePath);
+                    const name = content?.name || path.parse(file).name;
+                    // Only assume missing remote if we are sure we loaded all remotes. 
+                    // Since we loaded all remotes above, this is MISSING_REMOTE.
+                    statuses.push({
+                        id: '',
+                        name: name,
+                        filename: file,
+                        active: false,
+                        status: WorkflowSyncStatus.MISSING_REMOTE
+                    });
+                }
+            }
+        }
+
+        return statuses.sort((a, b) => a.name.localeCompare(b.name));
     }
 
     /**

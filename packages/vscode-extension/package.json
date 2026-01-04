@@ -17,6 +17,23 @@
     ],
     "main": "./out/extension.js",
     "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "n8n-explorer",
+                    "title": "n8n",
+                    "icon": "$(server-process)"
+                }
+            ]
+        },
+        "views": {
+            "n8n-explorer": [
+                {
+                    "id": "n8n-explorer.workflows",
+                    "name": "Workflows"
+                }
+            ]
+        },
         "commands": [
             {
                 "command": "n8n.pull",
@@ -25,8 +42,70 @@
             {
                 "command": "n8n.push",
                 "title": "n8n: Push Workflows (Sync Up)"
+            },
+            {
+                "command": "n8n.openWorkflow",
+                "title": "Open Board (Webview)",
+                "icon": "$(browser)"
+            },
+            {
+                "command": "n8n.openJson",
+                "title": "Open JSON",
+                "icon": "$(json)"
+            },
+            {
+                "command": "n8n.openSplit",
+                "title": "Open Split View",
+                "icon": "$(split-horizontal)"
+            },
+            {
+                "command": "n8n.refresh",
+                "title": "Refresh",
+                "icon": "$(refresh)"
             }
         ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "n8n.push",
+                    "group": "navigation"
+                },
+                {
+                    "command": "n8n.pull",
+                    "group": "navigation"
+                },
+                {
+                    "command": "n8n.refresh",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "n8n.openWorkflow",
+                    "group": "inline"
+                },
+                {
+                    "command": "n8n.openJson",
+                    "group": "inline"
+                },
+                {
+                    "command": "n8n.openWorkflow",
+                    "group": "1_open@1"
+                },
+                {
+                    "command": "n8n.openJson",
+                    "group": "1_open@2"
+                },
+                {
+                    "command": "n8n.openSplit",
+                    "group": "1_open@3"
+                },
+                {
+                    "command": "n8n.push",
+                    "group": "2_sync"
+                }
+            ]
+        },
         "configuration": {
             "title": "n8n as Code",
             "properties": {
