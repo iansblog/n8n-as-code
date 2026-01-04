@@ -142,32 +142,20 @@ export class SyncManager extends EventEmitter {
             if (this.fileToIdMap.has(file)) continue;
 
             const filePath = this.getFilePath(file);
-            const localData = this.readLocalFile(filePath);
-            if (!localData) continue;
+            await this.handleLocalFileChange(filePath);
+        }
+    }
 
-            this.emit('log', `📤 [Local->n8n] Creating orphan: "${file}"`);
+    /**
+     * Full Upstream Sync: Updates existing and Creates new.
+     */
+    async syncUp() {
+        this.emit('log', '📤 [SyncManager] Starting Upstream Sync (Push)...');
+        const localFiles = fs.readdirSync(this.config.directory).filter(f => f.endsWith('.json'));
 
-            try {
-                let payload = WorkflowSanitizer.cleanForPush(localData);
-
-                // Name Safety Check
-                const nameFromFile = path.parse(file).name;
-                const payLoadName = payload.name || '';
-                const safePayloadName = this.safeName(payLoadName);
-
-                if (safePayloadName !== nameFromFile) {
-                    this.emit('log', `⚠️  Name mismatch. File: "${file}" vs JSON: "${payLoadName}". Auto-correcting to filename.`);
-                    payload.name = nameFromFile;
-                } else {
-                    payload.name = payload.name || nameFromFile;
-                }
-
-                const newWf = await this.client.createWorkflow(payload);
-                this.emit('log', `✅ Created (ID: ${newWf.id})`);
-                this.fileToIdMap.set(file, newWf.id);
-            } catch (error: any) {
-                this.emit('error', `❌ Failed to create "${file}": ${error.message}`);
-            }
+        for (const file of localFiles) {
+            const filePath = this.getFilePath(file);
+            await this.handleLocalFileChange(filePath);
         }
     }
 

@@ -42,7 +42,7 @@ export class SyncCommand extends BaseCommand {
 
             // Prevent creation of duplicates by loading remote state first
             await syncManager.loadRemoteState();
-            await syncManager.syncUpMissing();
+            await syncManager.syncUp();
 
             spinner.succeed('Push complete.');
         } catch (e: any) {
