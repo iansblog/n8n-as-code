@@ -5,9 +5,11 @@ import { SyncManager, N8nApiClient, IN8nCredentials, IWorkflowStatus, SchemaGene
 import { StatusBar } from './ui/status-bar.js';
 import { WorkflowTreeProvider } from './ui/workflow-tree-provider.js';
 import { WorkflowWebview } from './ui/workflow-webview.js';
+import { ProxyService } from './services/proxy-service.js';
 
 let syncManager: SyncManager | undefined;
 const statusBar = new StatusBar();
+const proxyService = new ProxyService();
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🔌 Activation of "n8n-as-code" ...');
@@ -52,14 +54,24 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }),
 
-        vscode.commands.registerCommand('n8n.openBoard', (arg: any) => {
+        vscode.commands.registerCommand('n8n.openBoard', async (arg: any) => {
             const wf = arg?.workflow ? arg.workflow : arg;
             if (!wf) return;
 
             const config = vscode.workspace.getConfiguration('n8n');
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
+
             if (host) {
-                WorkflowWebview.createOrShow(wf, host);
+                try {
+                    // Start Local Proxy to strip X-Frame-Options
+                    const proxyUrl = await proxyService.start(host);
+                    const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
+
+                    // Open in Embedded Webview
+                    WorkflowWebview.createOrShow(wf, targetUrl);
+                } catch (e: any) {
+                    vscode.window.showErrorMessage(`Proxy Start Failed: ${e.message}`);
+                }
             } else {
                 vscode.window.showErrorMessage('n8n Host not configured.');
             }
@@ -277,4 +289,6 @@ async function initializeSyncManager() {
     }
 }
 
-export function deactivate() { }
+export function deactivate() {
+    proxyService.stop();
+}
