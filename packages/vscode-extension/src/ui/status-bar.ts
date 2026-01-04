@@ -1,0 +1,32 @@
+import * as vscode from 'vscode';
+
+export class StatusBar {
+    private item: vscode.StatusBarItem;
+
+    constructor() {
+        this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.item.command = 'n8n.pull';
+    }
+
+    showSyncing() {
+        this.item.text = '$(sync~spin) n8n';
+        this.item.tooltip = 'Syncing...';
+        this.item.show();
+    }
+
+    showSynced() {
+        this.item.text = '$(check) n8n';
+        this.item.tooltip = 'Workflows Synced';
+        this.item.show();
+
+        setTimeout(() => {
+            this.item.text = 'n8n'; // Revert to neutral state
+        }, 3000);
+    }
+
+    showError(msg: string) {
+        this.item.text = '$(error) n8n';
+        this.item.tooltip = msg;
+        this.item.show();
+    }
+}

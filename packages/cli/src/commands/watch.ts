@@ -1,0 +1,68 @@
+import { BaseCommand } from './base.js';
+import { SyncManager } from '@n8n-as-code/core';
+import chokidar from 'chokidar';
+import chalk from 'chalk';
+import ora from 'ora';
+
+export class WatchCommand extends BaseCommand {
+    async run() {
+        console.log(chalk.blue('🚀 Starting n8n-as-code Watcher...'));
+
+        const syncManager = new SyncManager(this.client, {
+            directory: this.config.directory,
+            pollIntervalMs: this.config.pollInterval,
+            syncInactive: this.config.syncInactive,
+            ignoredTags: this.config.ignoredTags
+        });
+
+        const spinner = ora('Initializing...').start();
+
+        // Connect logs
+        syncManager.on('log', (msg: string) => {
+            if (msg.includes('Error')) {
+                spinner.fail(msg);
+            } else if (msg.includes('✅') || msg.includes('✨') || msg.includes('Updated')) {
+                spinner.succeed(msg);
+                spinner.start('Watching...');
+            } else {
+                // spinner.info(msg); // Too verbose?
+                // Just keep spinner spinning or log info if important
+                if (msg.includes('Starting') || msg.includes('Checking')) {
+                    spinner.text = msg;
+                }
+            }
+        });
+
+        syncManager.on('error', (err: string) => {
+            spinner.fail(chalk.red(err));
+            spinner.start('Watching...');
+        });
+
+        // 1. Initial Sync
+        try {
+            await syncManager.syncDown();
+            await syncManager.syncUpMissing();
+            spinner.succeed('Initial sync complete.');
+        } catch (e: any) {
+            spinner.fail(`Initial sync failed: ${e.message}`);
+        }
+
+        // 2. Start Watcher
+        console.log(chalk.cyan(`👀 Watching directory: ${this.config.directory}`));
+        const watcher = chokidar.watch(this.config.directory, {
+            ignored: /(^|[\/\\])\../,
+            persistent: true,
+            ignoreInitial: true,
+            awaitWriteFinish: { stabilityThreshold: 500, pollInterval: 100 }
+        });
+
+        watcher
+            .on('change', (p) => syncManager.handleLocalFileChange(p))
+            .on('add', (p) => syncManager.handleLocalFileChange(p));
+
+        // 3. Polling Loop
+        setInterval(async () => {
+            await syncManager.syncDown();
+        }, this.config.pollInterval);
+    }
+}

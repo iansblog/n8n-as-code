@@ -1,0 +1,64 @@
+{
+    "name": "@n8n-as-code/vscode-extension",
+    "displayName": "n8n as code",
+    "description": "Edit your n8n workflows directly in VS Code with AI assistance.",
+    "version": "0.0.1",
+    "publisher": "etienne-lescot",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/EtienneLescot/n8n-as-code"
+    },
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "n8n.pull",
+                "title": "n8n: Pull Workflows"
+            },
+            {
+                "command": "n8n.push",
+                "title": "n8n: Push Workflows (Sync Up)"
+            }
+        ],
+        "configuration": {
+            "title": "n8n as Code",
+            "properties": {
+                "n8n.host": {
+                    "type": "string",
+                    "description": "Base URL of n8n instance"
+                },
+                "n8n.apiKey": {
+                    "type": "string",
+                    "description": "n8n API Key"
+                },
+                "n8n.syncFolder": {
+                    "type": "string",
+                    "default": "workflows",
+                    "description": "Local folder to sync workflows"
+                }
+            }
+        }
+    },
+    "categories": [
+        "Other"
+    ],
+    "dependencies": {
+        "@n8n-as-code/core": "^1.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3",
+        "@types/vscode": "^1.85.0",
+        "@types/node": "^18.0.0"
+    },
+    "scripts": {
+        "compile": "tsc -b",
+        "watch": "tsc -b -w"
+    }
+}

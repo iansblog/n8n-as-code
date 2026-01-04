@@ -1,4 +1,17 @@
 {
+  "name": "n8n-as-code-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "n8n workflow ecosystem",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "node scripts/init-synced-git.js"
+  },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "axios": "^1.13.2",
     "chokidar": "^5.0.0",
@@ -6,16 +19,7 @@
     "dotenv": "^17.2.3",
     "open": "^8.4.2"
   },
-  "name": "n8nworkflows",
-  "version": "1.0.0",
-  "description": "",
-  "main": "hotReload.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "node scripts/init-synced-git.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
 }
