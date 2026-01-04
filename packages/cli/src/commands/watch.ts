@@ -41,7 +41,7 @@ export class WatchCommand extends BaseCommand {
         // 1. Initial Sync
         try {
             await syncManager.syncDown();
-            await syncManager.syncUpMissing();
+            await syncManager.syncUp();
             spinner.succeed('Initial sync complete.');
         } catch (e: any) {
             spinner.fail(`Initial sync failed: ${e.message}`);
