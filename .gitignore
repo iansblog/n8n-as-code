@@ -45,3 +45,4 @@ packages/*/dist/
 packages/*/out/
 packages/*/node_modules/
 *.vsix
+*.tsbuildinfo
