@@ -4,12 +4,9 @@ import * as fs from 'fs';
 import { SyncManager, N8nApiClient, IN8nCredentials, IWorkflowStatus, SchemaGenerator, AiContextGenerator, SnippetGenerator } from '@n8n-as-code/core';
 import { StatusBar } from './ui/status-bar.js';
 import { WorkflowTreeProvider } from './ui/workflow-tree-provider.js';
-import { WorkflowWebview } from './ui/workflow-webview.js';
-import { ProxyService } from './services/proxy-service.js';
 
 let syncManager: SyncManager | undefined;
 const statusBar = new StatusBar();
-const proxyService = new ProxyService();
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🔌 Activation of "n8n-as-code" ...');
@@ -62,16 +59,9 @@ export async function activate(context: vscode.ExtensionContext) {
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
 
             if (host) {
-                try {
-                    // Start Local Proxy to strip X-Frame-Options
-                    const proxyUrl = await proxyService.start(host);
-                    const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
-
-                    // Open in Embedded Webview
-                    WorkflowWebview.createOrShow(wf, targetUrl);
-                } catch (e: any) {
-                    vscode.window.showErrorMessage(`Proxy Start Failed: ${e.message}`);
-                }
+                const targetUrl = `${host}/workflow/${wf.id}`;
+                // Use VS Code's SimpleBrowser - provides full browser functionality
+                await vscode.commands.executeCommand('simpleBrowser.show', targetUrl);
             } else {
                 vscode.window.showErrorMessage('n8n Host not configured.');
             }
@@ -96,7 +86,10 @@ export async function activate(context: vscode.ExtensionContext) {
             const wf = arg?.workflow ? arg.workflow : arg;
             if (!wf || !syncManager) return;
 
-            // 1. Open JSON
+            const config = vscode.workspace.getConfiguration('n8n');
+            const host = config.get<string>('host') || process.env.N8N_HOST || '';
+
+            // 1. Open JSON in left column
             if (wf.filename) {
                 const uri = vscode.Uri.file(path.join(syncManager['config'].directory, wf.filename));
                 try {
@@ -107,11 +100,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            // 2. Open Webview Aside
-            const config = vscode.workspace.getConfiguration('n8n');
-            const host = config.get<string>('host') || process.env.N8N_HOST || '';
+            // 2. Open SimpleBrowser in right column
             if (host) {
-                WorkflowWebview.createOrShow(wf, host, vscode.ViewColumn.Two);
+                const targetUrl = `${host}/workflow/${wf.id}`;
+                await vscode.commands.executeCommand('simpleBrowser.show', targetUrl);
             }
         }),
 
@@ -290,5 +282,5 @@ async function initializeSyncManager() {
 }
 
 export function deactivate() {
-    proxyService.stop();
+    // Cleanup if needed
 }
