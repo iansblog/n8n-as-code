@@ -82,13 +82,13 @@ export class ProxyService {
                         const value = cookie.substring(0, scIdx !== -1 ? scIdx : undefined).trim();
                         this.cookieJar.set(key, value);
                         if (key === 'n8n-auth') {
-                            this.log(`[Proxy] Updated session cookie: ${key}`);
+                            this.log(`[Proxy] Captured session cookie: ${key}`);
                         }
                     }
 
                     // For localhost proxy, we need to:
                     // 1. Remove Domain so cookie applies to localhost
-                    // 2. Remove SameSite restrictions (allow cross-origin iframes)
+                    // 2. Remove SameSite restrictions
                     // 3. Remove Secure flag since we're on http://localhost
                     return cookie
                         .replace(/; Secure/gi, '')
@@ -106,47 +106,8 @@ export class ProxyService {
             proxyRes.headers['access-control-allow-headers'] = '*';
         });
 
-        // Handle outgoing requests - spoof headers and inject captured cookies
-        this.proxy.on('proxyReq', (proxyReq, req, res) => {
-            try {
-                const url = req.url || 'unknown';
-
-                // Spoof Origin and Referer to satisfy n8n CSRF checks
-                proxyReq.setHeader('Origin', this.target);
-                proxyReq.setHeader('Referer', this.target + '/');
-
-                // If request has cookies, merge them. If not, use our captured session cookies.
-                const clientCookies = req.headers.cookie;
-                let finalCookies = clientCookies ? [clientCookies] : [];
-
-                // Always inject our captured cookies if they aren't already there
-                if (this.cookieJar.size > 0) {
-                    for (const [key, value] of this.cookieJar) {
-                        if (!clientCookies || !clientCookies.includes(key)) {
-                            finalCookies.push(value);
-                        }
-                    }
-                }
-
-                if (finalCookies.length > 0) {
-                    const cookieHeader = finalCookies.join('; ');
-                    proxyReq.setHeader('Cookie', cookieHeader);
-                    if (cookieHeader.includes('n8n-auth')) {
-                        this.log(`[Proxy] ${req.method} ${url} (Cookie injected)`);
-                    } else {
-                        this.log(`[Proxy] ${req.method} ${url}`);
-                    }
-                } else {
-                    this.log(`[Proxy] ${req.method} ${url} (No cookies)`);
-                }
-            } catch (err: any) {
-                const urlPart = req.url || 'unknown';
-                this.log(`[Proxy] ERROR in proxyReq for ${urlPart}: ${err.message}`);
-            }
-        });
-
         this.proxy.on('error', (err, req, res) => {
-            console.error('Proxy Error:', err);
+            this.log(`[Proxy] ERROR: ${err.message}`);
             const response = res as http.ServerResponse;
             if (!response.headersSent) {
                 response.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -168,6 +129,39 @@ export class ProxyService {
             }
 
             if (this.proxy) {
+                // MODIFICATION: Set headers directly on the 'req' object before proxying.
+                // This is safer and avoids the "Cannot set headers after they are sent" error.
+
+                const url = req.url || 'unknown';
+
+                // Spoof Origin and Referer
+                req.headers['origin'] = this.target;
+                req.headers['referer'] = this.target + '/';
+
+                // Merge cookies
+                const clientCookies = req.headers.cookie;
+                let finalCookies: string[] = clientCookies ? [clientCookies] : [];
+
+                if (this.cookieJar.size > 0) {
+                    for (const [key, value] of this.cookieJar) {
+                        // Avoid duplicates if client already sent this cookie
+                        if (!clientCookies || !clientCookies.includes(key + '=')) {
+                            finalCookies.push(value);
+                        }
+                    }
+                }
+
+                if (finalCookies.length > 0) {
+                    req.headers['cookie'] = finalCookies.join('; ');
+                    if (req.headers['cookie'].includes('n8n-auth')) {
+                        this.log(`[Proxy] Forwarding: ${req.method} ${url} (Cookie injected)`);
+                    } else {
+                        this.log(`[Proxy] Forwarding: ${req.method} ${url}`);
+                    }
+                } else {
+                    this.log(`[Proxy] Forwarding: ${req.method} ${url} (No cookies)`);
+                }
+
                 this.proxy.web(req, res);
             }
         });
