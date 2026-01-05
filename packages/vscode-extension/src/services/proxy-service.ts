@@ -122,8 +122,12 @@ export class ProxyService {
             this.server.listen(0, 'localhost', () => {
                 const address = this.server?.address() as AddressInfo;
                 this.port = address.port;
-                console.log(`n8n Proxy started on port ${this.port} -> ${targetUrl}`);
-                resolve(`http://localhost:${this.port}`);
+                const proxyUrl = `http://localhost:${this.port}`;
+                console.log(`🟢 [Proxy] Server started successfully!`);
+                console.log(`   Local: ${proxyUrl}`);
+                console.log(`   Target: ${targetUrl}`);
+                console.log(`   Ready to proxy n8n requests`);
+                resolve(proxyUrl);
             });
 
             // Proxy WebSockets for real-time features

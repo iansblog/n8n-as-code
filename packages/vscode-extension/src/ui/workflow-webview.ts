@@ -58,6 +58,7 @@ export class WorkflowWebview {
         <html lang="en">
         <head>
             <meta charset="UTF-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http://localhost:* http://127.0.0.1:*; script-src 'unsafe-inline'; style-src 'unsafe-inline';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>n8n: ${workflowId}</title>
             <style>
@@ -98,10 +99,17 @@ export class WorkflowWebview {
             <div class="loading">Loading n8n workflow</div>
             <iframe 
                 src="${url}" 
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
-                allow="clipboard-read; clipboard-write"
-                onload="document.querySelector('.loading').style.display='none'">
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-top-navigation allow-top-navigation-by-user-activation"
+                allow="clipboard-read; clipboard-write; geolocation; microphone; camera"
+                onload="document.querySelector('.loading').style.display='none'; console.log('n8n iframe loaded');"
+                onerror="console.error('n8n iframe failed to load');">
             </iframe>
+            <script>
+                // Log iframe events for debugging
+                window.addEventListener('message', (event) => {
+                    console.log('Webview received message:', event);
+                });
+            </script>
         </body>
         </html>`;
     }

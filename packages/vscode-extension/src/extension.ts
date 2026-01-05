@@ -61,15 +61,23 @@ export async function activate(context: vscode.ExtensionContext) {
             const config = vscode.workspace.getConfiguration('n8n');
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
 
+            console.log(`[n8n] Opening board for workflow: ${wf.name} (${wf.id})`);
+            console.log(`[n8n] Host configured: ${host}`);
+
             if (host) {
                 try {
                     // Start local proxy to handle authentication cookies
+                    console.log(`[n8n] Starting proxy for ${host}...`);
                     const proxyUrl = await proxyService.start(host);
+                    console.log(`[n8n] Proxy started at: ${proxyUrl}`);
+
                     const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
+                    console.log(`[n8n] Opening webview with URL: ${targetUrl}`);
 
                     // Open in embedded webview with proxy
                     WorkflowWebview.createOrShow(wf, targetUrl);
                 } catch (e: any) {
+                    console.error(`[n8n] Failed to start proxy:`, e);
                     vscode.window.showErrorMessage(`Failed to start proxy: ${e.message}`);
                 }
             } else {
