@@ -29,8 +29,10 @@ export class ProxyService {
             autoRewrite: true // Automatically rewrite redirects
         });
 
-        // Strip headers that block iframe embedding
+        // Strip headers that block iframe embedding and manage cookies
         this.proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+
             // Remove headers that prevent iframe embedding
             delete proxyRes.headers['x-frame-options'];
             delete proxyRes.headers['content-security-policy'];
@@ -39,40 +41,51 @@ export class ProxyService {
             // Rewrite Location header for redirects
             if (proxyRes.headers['location']) {
                 const location = proxyRes.headers['location'];
-                if (location.startsWith(targetUrl)) {
-                    proxyRes.headers['location'] = location.replace(targetUrl, `http://localhost:${this.port}`);
-                } else if (location.startsWith('/')) {
-                    // Relative redirects
-                    proxyRes.headers['location'] = `http://localhost:${this.port}${location}`;
-                }
+                const newLocation = location.startsWith(targetUrl)
+                    ? location.replace(targetUrl, `http://localhost:${this.port}`)
+                    : location.startsWith('/')
+                        ? `http://localhost:${this.port}${location}`
+                        : location;
+
+                console.log(`[Proxy] Redirect: ${location} -> ${newLocation}`);
+                proxyRes.headers['location'] = newLocation;
             }
 
-            // Rewrite cookies to work with localhost proxy
+            // CRITICAL: Fix cookies for iframe/webview context
             if (proxyRes.headers['set-cookie']) {
                 proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
-                    return cookie
-                        // Remove Secure flag for http localhost
+                    console.log(`[Proxy] Original cookie: ${cookie}`);
+
+                    // For localhost proxy, we need to:
+                    // 1. Remove Domain so cookie applies to localhost
+                    // 2. Remove SameSite restrictions entirely (let browser use default Lax)
+                    // 3. Remove Secure flag since we're on http://localhost
+                    const modified = cookie
                         .replace(/; Secure/gi, '')
-                        // Make cookies more permissive for iframe context
-                        .replace(/; SameSite=Strict/gi, '; SameSite=None')
-                        .replace(/; SameSite=Lax/gi, '; SameSite=None')
-                        // Remove domain restrictions
+                        .replace(/; SameSite=None/gi, '')
+                        .replace(/; SameSite=Strict/gi, '')
+                        .replace(/; SameSite=Lax/gi, '')
                         .replace(/; Domain=[^;]+/gi, '');
+
+                    console.log(`[Proxy] Modified cookie: ${modified}`);
+                    return modified;
                 });
             }
-
-            // Add CORS headers to allow webview access
-            proxyRes.headers['access-control-allow-origin'] = '*';
-            proxyRes.headers['access-control-allow-credentials'] = 'true';
-            proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
-            proxyRes.headers['access-control-allow-headers'] = '*';
         });
 
-        // Handle CORS preflight requests
+        // Handle outgoing requests - forward cookies
         this.proxy.on('proxyReq', (proxyReq, req, res) => {
-            // Forward credentials
+            console.log(`[Proxy] Outgoing: ${req.method} ${req.url}`);
+
+            // Forward all cookies from the request
             if (req.headers.cookie) {
+                console.log(`[Proxy] Forwarding cookies: ${req.headers.cookie}`);
                 proxyReq.setHeader('Cookie', req.headers.cookie);
+            }
+
+            // Log request body for POST requests (for debugging login)
+            if (req.method === 'POST') {
+                console.log(`[Proxy] POST request to ${req.url}`);
             }
         });
 
