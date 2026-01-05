@@ -10,6 +10,8 @@ export class ProxyService {
     private target: string = '';
     private outputChannel: vscode.OutputChannel | undefined;
 
+    private capturedCookies: string[] = [];
+
     constructor() { }
 
     public setOutputChannel(channel: vscode.OutputChannel) {
@@ -32,6 +34,8 @@ export class ProxyService {
             this.stop();
         }
 
+        // Reset state
+        this.capturedCookies = [];
         // Ensure targetUrl doesn't have trailing slash for consistency
         this.target = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
 
@@ -46,7 +50,8 @@ export class ProxyService {
 
         // Strip headers that block iframe embedding and manage cookies
         this.proxy.on('proxyRes', (proxyRes, req, res) => {
-            this.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+            const url = req.url || 'unknown';
+            this.log(`[Proxy] ${req.method} ${url} -> ${proxyRes.statusCode}`);
 
             // Remove headers that prevent iframe embedding
             delete proxyRes.headers['x-frame-options'];
@@ -66,9 +71,16 @@ export class ProxyService {
                 proxyRes.headers['location'] = newLocation;
             }
 
-            // CRITICAL: Fix cookies for iframe/webview context
+            // CRITICAL: Capture and Fix cookies for iframe/webview context
             if (proxyRes.headers['set-cookie']) {
                 proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
+                    // Update our internal cookie store
+                    const cookieParts = cookie.split(';')[0];
+                    if (!this.capturedCookies.includes(cookieParts)) {
+                        this.capturedCookies.push(cookieParts);
+                        this.log(`[Proxy] Captured Session Cookie: ${cookieParts.substring(0, 30)}...`);
+                    }
+
                     // For localhost proxy, we need to:
                     // 1. Remove Domain so cookie applies to localhost
                     // 2. Remove SameSite restrictions (allow cross-origin iframes)
@@ -92,10 +104,11 @@ export class ProxyService {
             proxyRes.headers['access-control-allow-headers'] = '*';
         });
 
-        // Handle outgoing requests - spoof headers to look like they come from n8n origin
+        // Handle outgoing requests - spoof headers and inject captured cookies
         this.proxy.on('proxyReq', (proxyReq, req, res) => {
             try {
-                this.log(`[Proxy] Forwarding: ${req.method} ${req.url}`);
+                const url = req.url || 'unknown';
+                this.log(`[Proxy] Forwarding: ${req.method} ${url}`);
 
                 // Spoof Origin and Referer to satisfy n8n CSRF checks
                 // Only set them if not already sent
@@ -103,11 +116,15 @@ export class ProxyService {
                     proxyReq.setHeader('Origin', this.target);
                     proxyReq.setHeader('Referer', this.target + '/');
 
-                    // Forward all cookies from the request
-                    if (req.headers.cookie) {
-                        const urlPart = req.url ? req.url.substring(0, 30) : 'unknown';
-                        this.log(`[Proxy] Forwarding Cookies for ${urlPart}...`);
-                        proxyReq.setHeader('Cookie', req.headers.cookie);
+                    // If request has cookies, use them. If not, use our captured session cookies.
+                    const clientCookies = req.headers.cookie;
+                    if (clientCookies) {
+                        this.log(`[Proxy] Client sent cookies for ${url.substring(0, 20)}`);
+                        proxyReq.setHeader('Cookie', clientCookies);
+                    } else if (this.capturedCookies.length > 0) {
+                        const mergedCookies = this.capturedCookies.join('; ');
+                        this.log(`[Proxy] Injecting session cookies for ${url.substring(0, 20)}`);
+                        proxyReq.setHeader('Cookie', mergedCookies);
                     }
                 }
             } catch (err: any) {
