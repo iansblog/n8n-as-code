@@ -4,10 +4,12 @@ import { IWorkflowStatus } from '@n8n-as-code/core';
 export class WorkflowWebview {
     public static currentPanel: WorkflowWebview | undefined;
     private readonly _panel: vscode.WebviewPanel;
+    private _workflowId: string;
     private _disposables: vscode.Disposable[] = [];
 
     private constructor(panel: vscode.WebviewPanel, workflowId: string, url: string) {
         this._panel = panel;
+        this._workflowId = workflowId;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._panel.webview.html = this.getHtmlForWebview(workflowId, url);
     }
@@ -38,7 +40,17 @@ export class WorkflowWebview {
         WorkflowWebview.currentPanel = new WorkflowWebview(panel, workflow.id, url);
     }
 
+    /**
+     * Trigger a reload of the webview if the workflowId matches the one currently displayed.
+     */
+    public static reloadIfMatching(workflowId: string) {
+        if (WorkflowWebview.currentPanel && WorkflowWebview.currentPanel._workflowId === workflowId) {
+            WorkflowWebview.currentPanel._panel.webview.postMessage({ type: 'reload' });
+        }
+    }
+
     public update(workflowId: string, url: string) {
+        this._workflowId = workflowId;
         this._panel.title = `n8n: ${workflowId}`;
         this._panel.webview.html = this.getHtmlForWebview(workflowId, url);
     }
@@ -98,6 +110,7 @@ export class WorkflowWebview {
         <body>
             <div class="loading">Loading n8n workflow</div>
             <iframe 
+                id="n8n-frame"
                 src="${url}" 
                 sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-top-navigation allow-top-navigation-by-user-activation"
                 allow="clipboard-read; clipboard-write; geolocation; microphone; camera"
@@ -105,9 +118,24 @@ export class WorkflowWebview {
                 onerror="console.error('n8n iframe failed to load');">
             </iframe>
             <script>
-                // Log iframe events for debugging
+                const vscode = acquireVsCodeApi();
+                const frame = document.getElementById('n8n-frame');
+
+                // Handle messages from the extension
                 window.addEventListener('message', (event) => {
-                    console.log('Webview received message:', event);
+                    const message = event.data;
+                    console.log('Webview received message:', message);
+                    
+                    if (message.type === 'reload') {
+                        console.log('Reloading n8n iframe...');
+                        document.querySelector('.loading').style.display = 'block';
+                        // Refresh the iframe by re-setting its src
+                        const currentSrc = frame.src;
+                        frame.src = 'about:blank';
+                        setTimeout(() => {
+                            frame.src = currentSrc;
+                        }, 10);
+                    }
                 });
             </script>
         </body>

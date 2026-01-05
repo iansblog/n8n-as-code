@@ -145,6 +145,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 const absPath = path.join(syncManager['config'].directory, wf.filename);
                 await syncManager.handleLocalFileChange(absPath);
 
+                WorkflowWebview.reloadIfMatching(wf.id);
+
                 treeProvider.refresh();
                 statusBar.showSynced();
                 vscode.window.showInformationMessage(`✅ Pushed "${wf.name}"`);
@@ -246,6 +248,17 @@ export async function activate(context: vscode.ExtensionContext) {
                         statusBar.showSyncing();
                         try {
                             await syncManager.handleLocalFileChange(document.uri.fsPath);
+
+                            // Parse workflow ID from the file to trigger refresh
+                            try {
+                                const content = JSON.parse(document.getText());
+                                if (content.id) {
+                                    WorkflowWebview.reloadIfMatching(content.id);
+                                }
+                            } catch (e) {
+                                // Ignore parse errors for refresh logic
+                            }
+
                             treeProvider.refresh(); // Refresh tree to show "Modifying..." or updated status if we tracked it
                             statusBar.showSynced();
                             vscode.window.setStatusBarMessage('Saved & Pushed to n8n', 3000);
