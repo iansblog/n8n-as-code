@@ -43,10 +43,32 @@ export class WorkflowWebview {
     /**
      * Trigger a reload of the webview if the workflowId matches the one currently displayed.
      */
-    public static reloadIfMatching(workflowId: string) {
-        if (WorkflowWebview.currentPanel && WorkflowWebview.currentPanel._workflowId === workflowId) {
-            WorkflowWebview.currentPanel._panel.webview.postMessage({ type: 'reload' });
+    public static reloadIfMatching(workflowId: string, outputChannel?: vscode.OutputChannel) {
+        if (WorkflowWebview.currentPanel) {
+            const panelId = WorkflowWebview.currentPanel._workflowId;
+            if (panelId === workflowId) {
+                outputChannel?.appendLine(`[Webview] Reloading matching workflow: ${workflowId}`);
+                WorkflowWebview.currentPanel._panel.webview.postMessage({ type: 'reload' });
+                return true;
+            } else {
+                outputChannel?.appendLine(`[Webview] Workflow ID mismatch for reload. Panel: ${panelId}, Requested: ${workflowId}`);
+            }
+        } else {
+            outputChannel?.appendLine(`[Webview] No active panel for reload matching: ${workflowId}`);
         }
+        return false;
+    }
+
+    /**
+     * Reload the currently open webview regardless of workflow ID.
+     */
+    public static reloadCurrent(outputChannel?: vscode.OutputChannel) {
+        if (WorkflowWebview.currentPanel) {
+            outputChannel?.appendLine(`[Webview] Reloading current panel (${WorkflowWebview.currentPanel._workflowId})`);
+            WorkflowWebview.currentPanel._panel.webview.postMessage({ type: 'reload' });
+            return true;
+        }
+        return false;
     }
 
     public update(workflowId: string, url: string) {

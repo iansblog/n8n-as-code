@@ -48,6 +48,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 try {
                     // Update: use syncUp() for full sync like in CLI
                     await syncManager.syncUp();
+
+                    // Intelligent Refresh: Refresh whatever is currently open if we did a global push
+                    WorkflowWebview.reloadCurrent(outputChannel);
+
                     // Refresh tree
                     treeProvider.refresh();
                     statusBar.showSynced();
@@ -145,7 +149,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 const absPath = path.join(syncManager['config'].directory, wf.filename);
                 await syncManager.handleLocalFileChange(absPath);
 
-                WorkflowWebview.reloadIfMatching(wf.id);
+                outputChannel.appendLine(`[n8n] Push successful for: ${wf.name} (${wf.id})`);
+                WorkflowWebview.reloadIfMatching(wf.id, outputChannel);
 
                 treeProvider.refresh();
                 statusBar.showSynced();
@@ -253,7 +258,8 @@ export async function activate(context: vscode.ExtensionContext) {
                             try {
                                 const content = JSON.parse(document.getText());
                                 if (content.id) {
-                                    WorkflowWebview.reloadIfMatching(content.id);
+                                    outputChannel.appendLine(`[n8n] Auto-push successful for: ${content.id}`);
+                                    WorkflowWebview.reloadIfMatching(content.id, outputChannel);
                                 }
                             } catch (e) {
                                 // Ignore parse errors for refresh logic
