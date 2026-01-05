@@ -22,14 +22,36 @@ export class ProxyService {
         this.target = targetUrl;
         this.proxy = httpProxy.createProxyServer({
             target: targetUrl,
-            changeOrigin: true, // Needed for virtual hosted sites
-            secure: false // Ignore self-signed certs
+            changeOrigin: true,
+            secure: false,
+            cookieDomainRewrite: "" // Rewrite all domains to match localhost
         });
 
         // Strip headers that block iframe embedding
         this.proxy.on('proxyRes', (proxyRes, req, res) => {
             delete proxyRes.headers['x-frame-options'];
             delete proxyRes.headers['content-security-policy'];
+
+            // 1. Rewrite Location header for redirects
+            if (proxyRes.headers['location']) {
+                const location = proxyRes.headers['location'];
+                if (location.startsWith(targetUrl)) {
+                    proxyRes.headers['location'] = location.replace(targetUrl, `http://localhost:${this.port}`);
+                }
+            }
+
+            // 2. Rewrite Cookies (Secure/SameSite adjustment)
+            if (proxyRes.headers['set-cookie']) {
+                proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
+                    // Remove Secure to allow on http localhost (some browsers strict)
+                    // Remove SameSite=Strict/Lax to allow iframe usage if cross-origin context were an issue (though here it's top-level webview)
+                    // But mostly just stripping Domain (handled by cookieDomainRewrite) and Secure usually fixes it.
+                    return cookie
+                        .replace(/; Secure/gi, '')
+                        .replace(/; SameSite=Strict/gi, '; SameSite=Lax') // Lax is usually safer/better for nav
+                        .replace(/; Domain=[^;]+/gi, ''); // Double ensure domain is gone
+                });
+            }
         });
 
         this.proxy.on('error', (err, req, res) => {
