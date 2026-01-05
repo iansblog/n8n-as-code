@@ -60,7 +60,8 @@ export class ProxyService {
 
             // CRITICAL for SSE: Ensure no buffering
             proxyRes.headers['x-accel-buffering'] = 'no';
-            proxyRes.headers['cache-control'] = 'no-cache';
+            proxyRes.headers['cache-control'] = 'no-cache, no-transform';
+            proxyRes.headers['connection'] = 'keep-alive';
 
             // Rewrite Location header for redirects
             if (proxyRes.headers['location']) {
@@ -113,11 +114,14 @@ export class ProxyService {
 
         this.proxy.on('error', (err, req, res) => {
             this.log(`[Proxy] ERROR: ${err.message}`);
-            const response = res as http.ServerResponse;
-            if (!response.headersSent) {
-                response.writeHead(500, { 'Content-Type': 'text/plain' });
+            // If it's a websocket error, res is a socket
+            if ((res as any).writeHead) {
+                const response = res as http.ServerResponse;
+                if (!response.headersSent) {
+                    response.writeHead(500, { 'Content-Type': 'text/plain' });
+                }
+                response.end('Proxy Error: ' + err.message);
             }
-            response.end('Proxy Error: ' + err.message);
         });
 
         this.server = http.createServer((req, res) => {
@@ -136,16 +140,6 @@ export class ProxyService {
             if (this.proxy) {
                 const url = req.url || 'unknown';
 
-                // Spoof Origin and Referer
-                req.headers['origin'] = this.target;
-                req.headers['referer'] = this.target + '/';
-
-                // Add Forwarding Headers - CRITICAL for n8n to know its external URL
-                const hostHeader = req.headers.host || `localhost:${this.port}`;
-                req.headers['x-forwarded-host'] = hostHeader;
-                req.headers['x-forwarded-proto'] = 'http';
-                req.headers['x-forwarded-for'] = req.socket.remoteAddress;
-
                 // Merge cookies
                 const clientCookies = req.headers.cookie;
                 let finalCookies: string[] = clientCookies ? [clientCookies] : [];
@@ -161,16 +155,29 @@ export class ProxyService {
 
                 if (finalCookies.length > 0) {
                     req.headers['cookie'] = finalCookies.join('; ');
-                    if (req.headers['cookie'].includes('n8n-auth')) {
-                        this.log(`[Proxy] Forwarding: ${req.method} ${url} (Cookie injected)`);
-                    } else {
-                        this.log(`[Proxy] Forwarding: ${req.method} ${url}`);
-                    }
-                } else {
-                    this.log(`[Proxy] Forwarding: ${req.method} ${url} (No cookies)`);
                 }
 
-                // CRITICAL: Disable buffering for this request
+                // Add Forwarding Headers - CRITICAL for n8n to know its external URL
+                const proxyHost = `localhost:${this.port}`;
+                req.headers['x-forwarded-host'] = proxyHost;
+                req.headers['x-forwarded-proto'] = 'http';
+                req.headers['x-forwarded-port'] = this.port.toString();
+                req.headers['x-forwarded-for'] = req.socket.remoteAddress;
+
+                // Ensure n8n sees the proxy as the origin to match X-Forwarded-Host
+                req.headers['origin'] = `http://${proxyHost}`;
+                // Keep the referer matching the proxy URL
+                if (req.headers['referer']) {
+                    req.headers['referer'] = req.headers['referer'].replace(new RegExp(`^http://localhost:[0-9]+`), `http://${proxyHost}`);
+                }
+
+                if (req.headers['cookie']?.includes('n8n-auth')) {
+                    this.log(`[Proxy] Forwarding: ${req.method} ${url} (Cookie injected)`);
+                } else {
+                    this.log(`[Proxy] Forwarding: ${req.method} ${url}`);
+                }
+
+                // CRITICAL for SSE: Disable buffering
                 this.proxy.web(req, res, { buffer: undefined });
             }
         });
@@ -192,6 +199,28 @@ export class ProxyService {
             // Proxy WebSockets for real-time features
             this.server.on('upgrade', (req, socket, head) => {
                 if (this.proxy) {
+                    this.log(`[Proxy] Upgrading to WebSocket: ${req.url}`);
+
+                    // Add same headers to WS upgrade request
+                    const proxyHost = `localhost:${this.port}`;
+                    req.headers['x-forwarded-host'] = proxyHost;
+                    req.headers['x-forwarded-proto'] = 'http';
+                    req.headers['origin'] = `http://${proxyHost}`;
+
+                    // Inject cookies for WS as well
+                    if (this.cookieJar.size > 0) {
+                        const clientCookies = req.headers.cookie;
+                        let finalCookies: string[] = clientCookies ? [clientCookies] : [];
+                        for (const [key, value] of this.cookieJar) {
+                            if (!clientCookies || !clientCookies.includes(key + '=')) {
+                                finalCookies.push(value);
+                            }
+                        }
+                        if (finalCookies.length > 0) {
+                            req.headers['cookie'] = finalCookies.join('; ');
+                        }
+                    }
+
                     this.proxy.ws(req, socket, head);
                 }
             });
