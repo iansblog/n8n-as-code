@@ -69,11 +69,9 @@ export class ProxyService {
             // CRITICAL: Fix cookies for iframe/webview context
             if (proxyRes.headers['set-cookie']) {
                 proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
-                    this.log(`[Proxy] Set-Cookie: ${cookie}`);
-
                     // For localhost proxy, we need to:
                     // 1. Remove Domain so cookie applies to localhost
-                    // 2. Remove SameSite restrictions entirely (let browser use default Lax)
+                    // 2. Remove SameSite restrictions (allow cross-origin iframes)
                     // 3. Remove Secure flag since we're on http://localhost
                     const modified = cookie
                         .replace(/; Secure/gi, '')
@@ -82,6 +80,7 @@ export class ProxyService {
                         .replace(/; SameSite=Lax/gi, '')
                         .replace(/; Domain=[^;]+/gi, '');
 
+                    this.log(`[Proxy] Modified Cookie: ${modified.substring(0, 50)}...`);
                     return modified;
                 });
             }
@@ -89,20 +88,31 @@ export class ProxyService {
             // Inject CORS for the webview
             proxyRes.headers['access-control-allow-origin'] = '*';
             proxyRes.headers['access-control-allow-credentials'] = 'true';
+            proxyRes.headers['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, OPTIONS, PATCH';
+            proxyRes.headers['access-control-allow-headers'] = '*';
         });
 
         // Handle outgoing requests - spoof headers to look like they come from n8n origin
         this.proxy.on('proxyReq', (proxyReq, req, res) => {
-            this.log(`[Proxy] Forwarding: ${req.method} ${req.url}`);
+            try {
+                this.log(`[Proxy] Forwarding: ${req.method} ${req.url}`);
 
-            // Spoof Origin and Referer to satisfy n8n CSRF checks
-            proxyReq.setHeader('Origin', this.target);
-            proxyReq.setHeader('Referer', this.target + '/');
+                // Spoof Origin and Referer to satisfy n8n CSRF checks
+                // Only set them if not already sent
+                if (!proxyReq.headersSent) {
+                    proxyReq.setHeader('Origin', this.target);
+                    proxyReq.setHeader('Referer', this.target + '/');
 
-            // Forward all cookies from the request
-            if (req.headers.cookie) {
-                this.log(`[Proxy] Sending Cookies: ${req.headers.cookie.substring(0, 30)}...`);
-                proxyReq.setHeader('Cookie', req.headers.cookie);
+                    // Forward all cookies from the request
+                    if (req.headers.cookie) {
+                        const urlPart = req.url ? req.url.substring(0, 30) : 'unknown';
+                        this.log(`[Proxy] Forwarding Cookies for ${urlPart}...`);
+                        proxyReq.setHeader('Cookie', req.headers.cookie);
+                    }
+                }
+            } catch (err: any) {
+                const urlPart = req.url || 'unknown';
+                this.log(`[Proxy] ERROR in proxyReq for ${urlPart}: ${err.message}`);
             }
         });
 
