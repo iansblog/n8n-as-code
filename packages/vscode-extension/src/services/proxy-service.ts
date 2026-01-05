@@ -58,6 +58,10 @@ export class ProxyService {
             delete proxyRes.headers['content-security-policy'];
             delete proxyRes.headers['content-security-policy-report-only'];
 
+            // CRITICAL for SSE: Ensure no buffering
+            proxyRes.headers['x-accel-buffering'] = 'no';
+            proxyRes.headers['cache-control'] = 'no-cache';
+
             // Rewrite Location header for redirects
             if (proxyRes.headers['location']) {
                 const location = proxyRes.headers['location'];
@@ -79,8 +83,9 @@ export class ProxyService {
                     const scIdx = cookie.indexOf(';');
                     if (eqIdx !== -1) {
                         const key = cookie.substring(0, eqIdx).trim();
-                        const value = cookie.substring(0, scIdx !== -1 ? scIdx : undefined).trim();
-                        this.cookieJar.set(key, value);
+                        // Capture the whole cookie string up to attributes
+                        const valuePart = cookie.substring(0, scIdx !== -1 ? scIdx : undefined).trim();
+                        this.cookieJar.set(key, valuePart);
                         if (key === 'n8n-auth') {
                             this.log(`[Proxy] Captured session cookie: ${key}`);
                         }
@@ -129,14 +134,17 @@ export class ProxyService {
             }
 
             if (this.proxy) {
-                // MODIFICATION: Set headers directly on the 'req' object before proxying.
-                // This is safer and avoids the "Cannot set headers after they are sent" error.
-
                 const url = req.url || 'unknown';
 
                 // Spoof Origin and Referer
                 req.headers['origin'] = this.target;
                 req.headers['referer'] = this.target + '/';
+
+                // Add Forwarding Headers - CRITICAL for n8n to know its external URL
+                const hostHeader = req.headers.host || `localhost:${this.port}`;
+                req.headers['x-forwarded-host'] = hostHeader;
+                req.headers['x-forwarded-proto'] = 'http';
+                req.headers['x-forwarded-for'] = req.socket.remoteAddress;
 
                 // Merge cookies
                 const clientCookies = req.headers.cookie;
@@ -162,7 +170,8 @@ export class ProxyService {
                     this.log(`[Proxy] Forwarding: ${req.method} ${url} (No cookies)`);
                 }
 
-                this.proxy.web(req, res);
+                // CRITICAL: Disable buffering for this request
+                this.proxy.web(req, res, { buffer: undefined });
             }
         });
 
