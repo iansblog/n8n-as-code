@@ -45,7 +45,7 @@
             },
             {
                 "command": "n8n.openBoard",
-                "title": "Open Board (Browser)",
+                "title": "Open Board (Webview)",
                 "icon": "$(browser)"
             },
             {
@@ -153,11 +153,13 @@
         "Other"
     ],
     "dependencies": {
-        "@n8n-as-code/core": "^1.0.0"
+        "@n8n-as-code/core": "^1.0.0",
+        "http-proxy": "^1.18.1"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",
         "@types/vscode": "^1.85.0",
+        "@types/http-proxy": "^1.17.17",
         "typescript": "^5.3.3"
     },
     "scripts": {

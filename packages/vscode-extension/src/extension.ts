@@ -4,9 +4,12 @@ import * as fs from 'fs';
 import { SyncManager, N8nApiClient, IN8nCredentials, IWorkflowStatus, SchemaGenerator, AiContextGenerator, SnippetGenerator } from '@n8n-as-code/core';
 import { StatusBar } from './ui/status-bar.js';
 import { WorkflowTreeProvider } from './ui/workflow-tree-provider.js';
+import { WorkflowWebview } from './ui/workflow-webview.js';
+import { ProxyService } from './services/proxy-service.js';
 
 let syncManager: SyncManager | undefined;
 const statusBar = new StatusBar();
+const proxyService = new ProxyService();
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🔌 Activation of "n8n-as-code" ...');
@@ -59,9 +62,16 @@ export async function activate(context: vscode.ExtensionContext) {
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
 
             if (host) {
-                const targetUrl = `${host}/workflow/${wf.id}`;
-                // Use VS Code's SimpleBrowser - provides full browser functionality
-                await vscode.commands.executeCommand('simpleBrowser.show', targetUrl);
+                try {
+                    // Start local proxy to handle authentication cookies
+                    const proxyUrl = await proxyService.start(host);
+                    const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
+
+                    // Open in embedded webview with proxy
+                    WorkflowWebview.createOrShow(wf, targetUrl);
+                } catch (e: any) {
+                    vscode.window.showErrorMessage(`Failed to start proxy: ${e.message}`);
+                }
             } else {
                 vscode.window.showErrorMessage('n8n Host not configured.');
             }
@@ -100,10 +110,15 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            // 2. Open SimpleBrowser in right column
+            // 2. Open webview in right column with proxy
             if (host) {
-                const targetUrl = `${host}/workflow/${wf.id}`;
-                await vscode.commands.executeCommand('simpleBrowser.show', targetUrl);
+                try {
+                    const proxyUrl = await proxyService.start(host);
+                    const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
+                    WorkflowWebview.createOrShow(wf, targetUrl, vscode.ViewColumn.Two);
+                } catch (e: any) {
+                    vscode.window.showErrorMessage(`Failed to start proxy: ${e.message}`);
+                }
             }
         }),
 
@@ -282,5 +297,5 @@ async function initializeSyncManager() {
 }
 
 export function deactivate() {
-    // Cleanup if needed
+    proxyService.stop();
 }
