@@ -10,9 +10,14 @@ import { ProxyService } from './services/proxy-service.js';
 let syncManager: SyncManager | undefined;
 const statusBar = new StatusBar();
 const proxyService = new ProxyService();
+const outputChannel = vscode.window.createOutputChannel("n8n-as-code");
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('🔌 Activation of "n8n-as-code" ...');
+    outputChannel.show(true);
+    outputChannel.appendLine('🔌 Activation of "n8n-as-code" ...');
+
+    // Pass output channel to proxy service
+    proxyService.setOutputChannel(outputChannel);
 
     // 1. Initial Setup
     await initializeSyncManager();
@@ -61,23 +66,23 @@ export async function activate(context: vscode.ExtensionContext) {
             const config = vscode.workspace.getConfiguration('n8n');
             const host = config.get<string>('host') || process.env.N8N_HOST || '';
 
-            console.log(`[n8n] Opening board for workflow: ${wf.name} (${wf.id})`);
-            console.log(`[n8n] Host configured: ${host}`);
+            outputChannel.appendLine(`[n8n] Opening board for workflow: ${wf.name} (${wf.id})`);
+            outputChannel.appendLine(`[n8n] Host configured: ${host}`);
 
             if (host) {
                 try {
                     // Start local proxy to handle authentication cookies
-                    console.log(`[n8n] Starting proxy for ${host}...`);
+                    outputChannel.appendLine(`[n8n] Starting proxy for ${host}...`);
                     const proxyUrl = await proxyService.start(host);
-                    console.log(`[n8n] Proxy started at: ${proxyUrl}`);
+                    outputChannel.appendLine(`[n8n] Proxy started at: ${proxyUrl}`);
 
                     const targetUrl = `${proxyUrl}/workflow/${wf.id}`;
-                    console.log(`[n8n] Opening webview with URL: ${targetUrl}`);
+                    outputChannel.appendLine(`[n8n] Opening webview with URL: ${targetUrl}`);
 
                     // Open in embedded webview with proxy
                     WorkflowWebview.createOrShow(wf, targetUrl);
                 } catch (e: any) {
-                    console.error(`[n8n] Failed to start proxy:`, e);
+                    outputChannel.appendLine(`[n8n] ERROR: Failed to start proxy: ${e.message}`);
                     vscode.window.showErrorMessage(`Failed to start proxy: ${e.message}`);
                 }
             } else {

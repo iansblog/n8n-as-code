@@ -8,8 +8,21 @@ export class ProxyService {
     private proxy: httpProxy | undefined;
     private port: number = 0;
     private target: string = '';
+    private outputChannel: vscode.OutputChannel | undefined;
 
     constructor() { }
+
+    public setOutputChannel(channel: vscode.OutputChannel) {
+        this.outputChannel = channel;
+    }
+
+    private log(message: string) {
+        if (this.outputChannel) {
+            this.outputChannel.appendLine(message);
+        } else {
+            console.log(message);
+        }
+    }
 
     public async start(targetUrl: string): Promise<string> {
         if (this.server) {
@@ -19,7 +32,9 @@ export class ProxyService {
             this.stop();
         }
 
-        this.target = targetUrl;
+        // Ensure targetUrl doesn't have trailing slash for consistency
+        this.target = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
+
         this.proxy = httpProxy.createProxyServer({
             target: targetUrl,
             changeOrigin: true,
@@ -31,7 +46,7 @@ export class ProxyService {
 
         // Strip headers that block iframe embedding and manage cookies
         this.proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+            this.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
 
             // Remove headers that prevent iframe embedding
             delete proxyRes.headers['x-frame-options'];
@@ -41,20 +56,20 @@ export class ProxyService {
             // Rewrite Location header for redirects
             if (proxyRes.headers['location']) {
                 const location = proxyRes.headers['location'];
-                const newLocation = location.startsWith(targetUrl)
-                    ? location.replace(targetUrl, `http://localhost:${this.port}`)
+                const newLocation = location.startsWith(this.target)
+                    ? location.replace(this.target, `http://localhost:${this.port}`)
                     : location.startsWith('/')
                         ? `http://localhost:${this.port}${location}`
                         : location;
 
-                console.log(`[Proxy] Redirect: ${location} -> ${newLocation}`);
+                this.log(`[Proxy] Redirect: ${location} -> ${newLocation}`);
                 proxyRes.headers['location'] = newLocation;
             }
 
             // CRITICAL: Fix cookies for iframe/webview context
             if (proxyRes.headers['set-cookie']) {
                 proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
-                    console.log(`[Proxy] Original cookie: ${cookie}`);
+                    this.log(`[Proxy] Set-Cookie: ${cookie}`);
 
                     // For localhost proxy, we need to:
                     // 1. Remove Domain so cookie applies to localhost
@@ -67,25 +82,27 @@ export class ProxyService {
                         .replace(/; SameSite=Lax/gi, '')
                         .replace(/; Domain=[^;]+/gi, '');
 
-                    console.log(`[Proxy] Modified cookie: ${modified}`);
                     return modified;
                 });
             }
+
+            // Inject CORS for the webview
+            proxyRes.headers['access-control-allow-origin'] = '*';
+            proxyRes.headers['access-control-allow-credentials'] = 'true';
         });
 
-        // Handle outgoing requests - forward cookies
+        // Handle outgoing requests - spoof headers to look like they come from n8n origin
         this.proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log(`[Proxy] Outgoing: ${req.method} ${req.url}`);
+            this.log(`[Proxy] Forwarding: ${req.method} ${req.url}`);
+
+            // Spoof Origin and Referer to satisfy n8n CSRF checks
+            proxyReq.setHeader('Origin', this.target);
+            proxyReq.setHeader('Referer', this.target + '/');
 
             // Forward all cookies from the request
             if (req.headers.cookie) {
-                console.log(`[Proxy] Forwarding cookies: ${req.headers.cookie}`);
+                this.log(`[Proxy] Sending Cookies: ${req.headers.cookie.substring(0, 30)}...`);
                 proxyReq.setHeader('Cookie', req.headers.cookie);
-            }
-
-            // Log request body for POST requests (for debugging login)
-            if (req.method === 'POST') {
-                console.log(`[Proxy] POST request to ${req.url}`);
             }
         });
 
@@ -123,10 +140,10 @@ export class ProxyService {
                 const address = this.server?.address() as AddressInfo;
                 this.port = address.port;
                 const proxyUrl = `http://localhost:${this.port}`;
-                console.log(`🟢 [Proxy] Server started successfully!`);
-                console.log(`   Local: ${proxyUrl}`);
-                console.log(`   Target: ${targetUrl}`);
-                console.log(`   Ready to proxy n8n requests`);
+                this.log(`🟢 [Proxy] Server started successfully!`);
+                this.log(`   Local: ${proxyUrl}`);
+                this.log(`   Target: ${this.target}`);
+                this.log(`   Ready to proxy n8n requests`);
                 resolve(proxyUrl);
             });
 
