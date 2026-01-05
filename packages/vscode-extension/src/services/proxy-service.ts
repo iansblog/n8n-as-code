@@ -10,7 +10,7 @@ export class ProxyService {
     private target: string = '';
     private outputChannel: vscode.OutputChannel | undefined;
 
-    private capturedCookies: string[] = [];
+    private cookieJar = new Map<string, string>();
 
     constructor() { }
 
@@ -35,7 +35,7 @@ export class ProxyService {
         }
 
         // Reset state
-        this.capturedCookies = [];
+        this.cookieJar.clear();
         // Ensure targetUrl doesn't have trailing slash for consistency
         this.target = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
 
@@ -50,8 +50,8 @@ export class ProxyService {
 
         // Strip headers that block iframe embedding and manage cookies
         this.proxy.on('proxyRes', (proxyRes, req, res) => {
-            const url = req.url || 'unknown';
-            this.log(`[Proxy] ${req.method} ${url} -> ${proxyRes.statusCode}`);
+            const path = req.url || 'unknown';
+            this.log(`[Proxy] ${req.method} ${path} -> ${proxyRes.statusCode}`);
 
             // Remove headers that prevent iframe embedding
             delete proxyRes.headers['x-frame-options'];
@@ -75,25 +75,27 @@ export class ProxyService {
             if (proxyRes.headers['set-cookie']) {
                 proxyRes.headers['set-cookie'] = proxyRes.headers['set-cookie'].map(cookie => {
                     // Update our internal cookie store
-                    const cookieParts = cookie.split(';')[0];
-                    if (!this.capturedCookies.includes(cookieParts)) {
-                        this.capturedCookies.push(cookieParts);
-                        this.log(`[Proxy] Captured Session Cookie: ${cookieParts.substring(0, 30)}...`);
+                    const eqIdx = cookie.indexOf('=');
+                    const scIdx = cookie.indexOf(';');
+                    if (eqIdx !== -1) {
+                        const key = cookie.substring(0, eqIdx).trim();
+                        const value = cookie.substring(0, scIdx !== -1 ? scIdx : undefined).trim();
+                        this.cookieJar.set(key, value);
+                        if (key === 'n8n-auth') {
+                            this.log(`[Proxy] Updated session cookie: ${key}`);
+                        }
                     }
 
                     // For localhost proxy, we need to:
                     // 1. Remove Domain so cookie applies to localhost
                     // 2. Remove SameSite restrictions (allow cross-origin iframes)
                     // 3. Remove Secure flag since we're on http://localhost
-                    const modified = cookie
+                    return cookie
                         .replace(/; Secure/gi, '')
                         .replace(/; SameSite=None/gi, '')
                         .replace(/; SameSite=Strict/gi, '')
                         .replace(/; SameSite=Lax/gi, '')
                         .replace(/; Domain=[^;]+/gi, '');
-
-                    this.log(`[Proxy] Modified Cookie: ${modified.substring(0, 50)}...`);
-                    return modified;
                 });
             }
 
@@ -108,24 +110,34 @@ export class ProxyService {
         this.proxy.on('proxyReq', (proxyReq, req, res) => {
             try {
                 const url = req.url || 'unknown';
-                this.log(`[Proxy] Forwarding: ${req.method} ${url}`);
 
                 // Spoof Origin and Referer to satisfy n8n CSRF checks
-                // Only set them if not already sent
-                if (!proxyReq.headersSent) {
-                    proxyReq.setHeader('Origin', this.target);
-                    proxyReq.setHeader('Referer', this.target + '/');
+                proxyReq.setHeader('Origin', this.target);
+                proxyReq.setHeader('Referer', this.target + '/');
 
-                    // If request has cookies, use them. If not, use our captured session cookies.
-                    const clientCookies = req.headers.cookie;
-                    if (clientCookies) {
-                        this.log(`[Proxy] Client sent cookies for ${url.substring(0, 20)}`);
-                        proxyReq.setHeader('Cookie', clientCookies);
-                    } else if (this.capturedCookies.length > 0) {
-                        const mergedCookies = this.capturedCookies.join('; ');
-                        this.log(`[Proxy] Injecting session cookies for ${url.substring(0, 20)}`);
-                        proxyReq.setHeader('Cookie', mergedCookies);
+                // If request has cookies, merge them. If not, use our captured session cookies.
+                const clientCookies = req.headers.cookie;
+                let finalCookies = clientCookies ? [clientCookies] : [];
+
+                // Always inject our captured cookies if they aren't already there
+                if (this.cookieJar.size > 0) {
+                    for (const [key, value] of this.cookieJar) {
+                        if (!clientCookies || !clientCookies.includes(key)) {
+                            finalCookies.push(value);
+                        }
                     }
+                }
+
+                if (finalCookies.length > 0) {
+                    const cookieHeader = finalCookies.join('; ');
+                    proxyReq.setHeader('Cookie', cookieHeader);
+                    if (cookieHeader.includes('n8n-auth')) {
+                        this.log(`[Proxy] ${req.method} ${url} (Cookie injected)`);
+                    } else {
+                        this.log(`[Proxy] ${req.method} ${url}`);
+                    }
+                } else {
+                    this.log(`[Proxy] ${req.method} ${url} (No cookies)`);
                 }
             } catch (err: any) {
                 const urlPart = req.url || 'unknown';
