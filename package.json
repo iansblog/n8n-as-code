@@ -25,7 +25,8 @@
       "clean": "npm run clean --workspaces --if-present && rm -rf packages/*/dist packages/*/out packages/**/tsconfig.tsbuildinfo .n8n-cache/ node_modules/.cache",
       "changeset": "changeset",
       "version-packages": "changeset version",
-      "release": "npm run build && changeset publish"
+      "release": "npm run build && changeset publish",
+      "check:versions": "node scripts/check-version-consistency.js"
   },
   "author": "",
   "license": "ISC",
