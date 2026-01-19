@@ -38,15 +38,29 @@ program
     .description('AI Agent Tools for accessing n8n documentation')
     .version(getVersion());
 
-// 1. Search
+// 1. Search - Unified search with hints
 program
     .command('search')
-    .description('Fuzzy search for nodes')
-    .argument('<query>', 'Search term (e.g. "google sheets")')
-    .action((query) => {
+    .description('Search for n8n nodes and documentation')
+    .argument('<query>', 'Search query (e.g. "google sheets", "ai agents")')
+    .option('--category <category>', 'Filter by category')
+    .option('--type <type>', 'Filter by type (node or documentation)')
+    .option('--limit <limit>', 'Limit results', '10')
+    .action((query, options) => {
         try {
-            const results = provider.searchNodes(query);
+            const results = knowledgeSearch.searchAll(query, {
+                category: options.category,
+                type: options.type,
+                limit: parseInt(options.limit)
+            });
+            
             console.log(JSON.stringify(results, null, 2));
+            
+            // Print hints to stderr so they don't interfere with JSON parsing
+            if (results.hints && results.hints.length > 0) {
+                console.error(chalk.cyan('\n💡 Hints:'));
+                results.hints.forEach(hint => console.error(chalk.gray(`   ${hint}`)));
+            }
         } catch (error: any) {
             console.error(chalk.red(error.message));
             process.exit(1);
@@ -67,6 +81,28 @@ program
                 console.error(chalk.red(`Node '${name}' not found.`));
                 process.exit(1);
             }
+        } catch (error: any) {
+            console.error(chalk.red(error.message));
+            process.exit(1);
+        }
+    });
+
+// 2. Get Full Details - With hints
+program
+    .command('get')
+    .description('Get complete node information (schema + documentation + examples)')
+    .argument('<name>', 'Node name (exact, e.g. "googleSheets")')
+    .action((name) => {
+        try {
+            const schema = provider.getNodeSchema(name);
+            console.log(JSON.stringify(schema, null, 2));
+            
+            // Add helpful hints
+            console.error(chalk.cyan('\n💡 Next steps:'));
+            console.error(chalk.gray(`   - 'schema ${name}' for quick parameter reference`));
+            console.error(chalk.gray(`   - 'examples ${name}' to find usage examples`));
+            console.error(chalk.gray(`   - 'related ${name}' to discover similar nodes`));
+            console.error(chalk.gray(`   - 'docs <title>' to read full documentation`));
         } catch (error: any) {
             console.error(chalk.red(error.message));
             process.exit(1);

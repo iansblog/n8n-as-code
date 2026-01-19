@@ -92,7 +92,7 @@ n8n-as-code start --manual # Start with interactive prompts
 We inject specific context to make your AI (Cursor, Windsurf, Copilot) an expert in n8n:
 
 -   📄 **`AGENTS.md`**: System instructions on n8n structure and best practices.
--   🛡️ **`@n8n-as-code/agent-cli`**: CLI tools providing accurate node schemas and validation from n8n's source code.
+-   🛡️ **`@n8n-as-code/agent-cli`**: Complete documentation system (1246+ pages) with intelligent search, node schemas, examples, and validation - the ultimate AI assistant for n8n workflows.
 -   🧩 **Snippets**: Library of predefined nodes (Webhook, Code, HTTP...) for faster coding.
 
 ### 🎭 Claude Agent Skill

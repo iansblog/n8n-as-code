@@ -17,22 +17,89 @@ npm install @n8n-as-code/agent-cli
 
 ## 📖 CLI Usage
 
-### `list`
-Lists all available n8n nodes.
+### `search <query>` - 🔍 Unified Search
+Search across nodes AND documentation with intelligent hints.
+
+```bash
+# Search everything
+n8n-agent search "google sheets"
+
+# Filter by type
+n8n-agent search "authentication" --type documentation
+n8n-agent search "database" --type node
+
+# Filter by category
+n8n-agent search "ai" --category advanced-ai
+```
+
+### `get <nodeName>` - 📚 Complete Node Info
+Get full node information: schema + documentation + examples.
+
+```bash
+n8n-agent get googleSheets
+n8n-agent get httpRequest
+```
+
+**Includes hints for next steps!**
+
+### `schema <nodeName>` - ⚡ Quick Parameter Reference
+Fast access to technical schema (parameters only).
+
+```bash
+n8n-agent schema googleSheets
+# Returns only properties and required fields
+```
+
+### `docs` - 📖 Access Documentation
+Access n8n's complete documentation (1246+ pages).
+
+```bash
+# Search documentation
+n8n-agent docs --search "ai agents"
+
+# Read a specific page
+n8n-agent docs "What is an agent?"
+
+# List all categories
+n8n-agent docs --list
+
+# Filter by category
+n8n-agent docs --search "memory" --category advanced-ai
+```
+
+### `examples [query]` - 🎯 Find Examples
+Find workflow examples and tutorials.
+
+```bash
+n8n-agent examples "email automation"
+n8n-agent examples "ai workflow"
+n8n-agent examples --list
+```
+
+### `related <query>` - 🔗 Discover Resources
+Find related nodes and documentation.
+
+```bash
+n8n-agent related googleSheets
+# Returns: Google Drive, Excel, Airtable, related docs
+
+n8n-agent related "ai agents"
+# Returns: AI-related concepts, nodes, examples
+```
+
+### `list` - 📋 List All Nodes
+Lists all available n8n nodes (compact).
+
 ```bash
 n8n-agent list
 ```
 
-### `get <nodeName>`
-Retrieves full details and schema for a specific node.
-```bash
-n8n-agent get n8n-nodes-base.httpRequest
-```
+### `validate <file>` - ✅ Validate Workflows
+Validate workflow JSON files.
 
-### `search <query>`
-Searches for nodes matching a query.
 ```bash
-n8n-agent search "google sheets"
+n8n-agent validate workflow.json
+n8n-agent validate workflow.json --strict
 ```
 
 ## 🧩 Integration

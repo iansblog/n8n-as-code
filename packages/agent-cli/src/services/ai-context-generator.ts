@@ -259,8 +259,12 @@ export class AiContextGenerator {
       `# n8n-as-code rules`,
       `- Refer to AGENTS.md for complete n8n workflow standards.`,
       `- MANDATORY: Use @n8n-as-code/agent-cli tools before creating/editing nodes.`,
-      `- Always run 'npx @n8n-as-code/agent-cli get <nodeName>' to get exact parameters.`,
-      `- Source of truth: n8n-nodes-index.json (via agent-cli tools).`
+      `- Search: 'npx @n8n-as-code/agent-cli search <query>' - Find nodes & docs`,
+      `- Get: 'npx @n8n-as-code/agent-cli get <nodeName>' - Complete node info`,
+      `- Schema: 'npx @n8n-as-code/agent-cli schema <nodeName>' - Quick parameters`,
+      `- Docs: 'npx @n8n-as-code/agent-cli docs --search <query>' - Access 1246+ pages`,
+      `- Examples: 'npx @n8n-as-code/agent-cli examples <query>' - Find tutorials`,
+      `- Validate: 'npx @n8n-as-code/agent-cli validate workflow.json' - Check errors`
     ].join('\n');
   }
 
