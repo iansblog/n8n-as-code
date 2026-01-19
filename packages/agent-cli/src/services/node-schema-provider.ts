@@ -47,20 +47,14 @@ export interface IEnrichedNode {
 export class NodeSchemaProvider {
     private index: any = null;
     private enrichedIndex: any = null;
-    private indexPath: string;
     private enrichedIndexPath: string;
-    private useEnriched: boolean = true;
 
-    constructor(customIndexPath?: string, useEnriched: boolean = true) {
-        this.useEnriched = useEnriched;
-        
+    constructor(customIndexPath?: string) {
         if (customIndexPath) {
-            this.indexPath = customIndexPath;
-            this.enrichedIndexPath = customIndexPath.replace('.json', '-enriched.json');
+            this.enrichedIndexPath = customIndexPath;
         } else {
-            // Resolve path to assets/n8n-nodes-index.json
-            // In dist structure: dist/services/node-schema-provider.js -> dist/assets/n8n-nodes-index.json
-            this.indexPath = path.resolve(_dirname, '../assets/n8n-nodes-index.json');
+            // Resolve path to assets/n8n-nodes-enriched.json
+            // In dist structure: dist/services/node-schema-provider.js -> dist/assets/n8n-nodes-enriched.json
             this.enrichedIndexPath = path.resolve(_dirname, '../assets/n8n-nodes-enriched.json');
         }
     }
@@ -69,40 +63,23 @@ export class NodeSchemaProvider {
     private loadIndex() {
         if (this.index) return;
         
-        // Try to load enriched index first
-        if (this.useEnriched && fs.existsSync(this.enrichedIndexPath)) {
-            try {
-                const content = fs.readFileSync(this.enrichedIndexPath, 'utf-8');
-                this.enrichedIndex = JSON.parse(content);
-                this.index = this.enrichedIndex; // Use enriched as primary
-                return;
-            } catch (error: any) {
-                console.warn(`Failed to load enriched index: ${error.message}, falling back to basic index`);
-            }
+        // Load enriched index (required)
+        if (!fs.existsSync(this.enrichedIndexPath)) {
+            throw new Error(
+                `Enriched node index not found at: ${this.enrichedIndexPath}\n` +
+                `Please run the build process: npm run build in packages/agent-cli`
+            );
         }
-        
-        // Fallback to basic index
-        try {
-            if (!fs.existsSync(this.indexPath)) {
-                throw new Error(`n8n Node Index not found at: ${this.indexPath}. Run 'npm run build' in @n8n-as-code/agent-cli.`);
-            }
 
-            const content = fs.readFileSync(this.indexPath, 'utf-8');
-            const basicIndex = JSON.parse(content);
-            
-            // Convert basic index to enriched-like structure for compatibility
-            if (Array.isArray(basicIndex.nodes)) {
-                this.index = {
-                    nodes: {}
-                };
-                for (const node of basicIndex.nodes) {
-                    this.index.nodes[node.name] = node;
-                }
-            } else {
-                this.index = basicIndex;
-            }
+        try {
+            const content = fs.readFileSync(this.enrichedIndexPath, 'utf-8');
+            this.enrichedIndex = JSON.parse(content);
+            this.index = this.enrichedIndex;
         } catch (error: any) {
-            throw new Error(`Failed to load n8n node index: ${error.message}`);
+            throw new Error(
+                `Failed to load enriched node index: ${error.message}\n` +
+                `The index file may be corrupted. Try rebuilding: npm run build in packages/agent-cli`
+            );
         }
     }
 

@@ -77,7 +77,7 @@ You manage n8n workflows as **clean, version-controlled JSON**.
 
 ### 🌍 Context
 - **n8n Version**: 2.2.6
-- **Schema**: Use `n8n-schema.json` for structural validation.
+- **Source of Truth**: Use `@n8n-as-code/agent-cli` tools to get accurate node schemas from n8n-nodes-index.json.
 
 ### 🛠 Coding Standards
 1. **Expressions**: Use `{{ $json.field }}` (modern) instead of `{{ $node["Name"].json.field }}` when possible.

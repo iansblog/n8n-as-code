@@ -175,7 +175,7 @@ n8n-as-code start --manual  # Manual mode with prompts
 - **3-way merge detection**: Uses base-local-remote comparison for accurate conflict detection
 
 ### `init-ai`
-Initialize AI Context (AGENTS.md, n8n-schema.json, rule files).
+Initialize AI Context (AGENTS.md, rule files, code snippets).
 
 **Description:**
 Generates context files that help AI coding assistants understand n8n workflow structure and best practices.
@@ -190,7 +190,7 @@ n8n-as-code init-ai
 
 **Creates:**
 - `AGENTS.md`: Instructions for AI assistants on n8n workflow development
-- `n8n-schema.json`: JSON Schema for workflow validation and autocomplete
+- `.vscode/n8n.code-snippets`: Code snippets for VS Code autocomplete (generated from n8n-nodes-index.json)
 - `.vscode/n8n.code-snippets`: Code snippets for common n8n node patterns
 - `.cursorrules` / `.clinerules`: AI agent rule files
 

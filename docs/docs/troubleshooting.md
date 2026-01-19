@@ -240,7 +240,7 @@ cat n8n-as-code.json
 3. **Check Generated Files:**
    ```bash
    # Verify files were created
-   ls -la AGENTS.md n8n-schema.json .vscode/n8n.code-snippets 2>/dev/null || echo "Some files missing"
+   ls -la AGENTS.md .vscode/n8n.code-snippets 2>/dev/null || echo "Some files missing"
    ```
 
 ### "AI assistant doesn't understand n8n"
@@ -249,7 +249,7 @@ cat n8n-as-code.json
 **Solutions:**
 1. **Verify Context Files:**
    - Ensure `AGENTS.md` exists in your project root
-   - Check `n8n-schema.json` is valid JSON
+   - Verify `@n8n-as-code/agent-cli` is installed and accessible
    - Verify snippets are in `.vscode/` folder
 
 2. **Update Context:**

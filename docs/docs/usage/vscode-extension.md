@@ -162,7 +162,7 @@ The extension uses a sophisticated 3-way merge algorithm to detect conflicts:
 ### Context Generation for AI Assistants
 The extension works with the CLI to generate context files that empower AI coding assistants:
 - `AGENTS.md`: Instructions for AI assistants on n8n workflow development
-- `n8n-schema.json`: JSON Schema for workflow validation and autocomplete
+- `.vscode/n8n.code-snippets`: Code snippets for autocomplete (generated from n8n-nodes-index.json)
 - `.vscode/n8n.code-snippets`: Code snippets for common n8n node patterns
 
 ### How AI Assistants Leverage These Files

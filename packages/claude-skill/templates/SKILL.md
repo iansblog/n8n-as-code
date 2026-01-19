@@ -196,7 +196,7 @@ A complete n8n workflow JSON has this structure:
 2. **Use descriptive node names** for clarity
 3. **Add comments in Code nodes** to explain logic
 4. **Test expressions** before deploying
-5. **Validate JSON structure** against n8n-schema.json if available
+5. **Validate node parameters** using `npx @n8n-as-code/agent-cli get <nodeName>`
 6. **Reference credentials** by name, never hardcode
 7. **Use error handling** nodes for production workflows
 

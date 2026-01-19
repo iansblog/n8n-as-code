@@ -22,7 +22,7 @@ describe('SnippetGenerator', () => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'n8n-snippet-test-'));
         projectDir = path.join(tempDir, 'project');
         fs.mkdirSync(projectDir);
-        indexPath = path.join(tempDir, 'n8n-nodes-index.json');
+        indexPath = path.join(tempDir, 'n8n-nodes-enriched.json');
         fs.writeFileSync(indexPath, JSON.stringify(mockIndex));
     });
 

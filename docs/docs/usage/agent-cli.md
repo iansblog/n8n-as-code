@@ -166,7 +166,7 @@ n8n-as-code init-ai
 ```
 
 This command creates:
-- `n8n-schema.json` - Complete JSON schema for n8n workflows
+- `.vscode/n8n.code-snippets` - Code snippets generated from n8n-nodes-index.json
 - `n8n-nodes-index.json` - Index of all available nodes
 - Documentation files for AI context
 

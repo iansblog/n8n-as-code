@@ -29,7 +29,7 @@ describe('NodeSchemaProvider', () => {
 
     beforeAll(() => {
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'n8n-test-'));
-        indexPath = path.join(tempDir, 'n8n-nodes-index.json');
+        indexPath = path.join(tempDir, 'n8n-nodes-enriched.json');
         fs.writeFileSync(indexPath, JSON.stringify(mockIndex));
         provider = new NodeSchemaProvider(indexPath);
     });

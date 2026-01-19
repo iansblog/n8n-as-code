@@ -156,7 +156,7 @@ your-project/
 │       └── folder/
 │           └── workflow-3.json
 ├── AGENTS.md                # AI assistant instructions (optional)
-├── n8n-schema.json          # JSON schema for validation (optional)
+├── n8n-as-code-instance.json # Instance configuration
 └── .git/                    # Version control (recommended)
 ```
 

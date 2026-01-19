@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { SyncManager, N8nApiClient, IN8nCredentials, SchemaGenerator, WorkflowSyncStatus, createInstanceIdentifier, createFallbackInstanceIdentifier } from '@n8n-as-code/core';
+import { SyncManager, N8nApiClient, IN8nCredentials, WorkflowSyncStatus, createInstanceIdentifier, createFallbackInstanceIdentifier } from '@n8n-as-code/core';
 import { AiContextGenerator, SnippetGenerator } from '@n8n-as-code/agent-cli';
 
 import { StatusBar } from './ui/status-bar.js';
@@ -272,10 +272,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 try {
                     const health = await client.getHealth();
                     const version = health.version;
-
-                    progress?.report({ message: `Generating Schema (n8n v${version})...` });
-                    const schemaGen = new SchemaGenerator();
-                    await schemaGen.generateSchema(path.join(rootPath, 'n8n-schema.json'));
 
                     progress?.report({ message: "Generating AGENTS.md..." });
                     const contextGen = new AiContextGenerator();
@@ -970,7 +966,6 @@ async function initializeSyncManager(context: vscode.ExtensionContext) {
     // Check AI context
     const aiFiles = [
         path.join(workspaceRoot, 'AGENTS.md'),
-        path.join(workspaceRoot, 'n8n-schema.json'),
         path.join(workspaceRoot, '.vscode', 'n8n.code-snippets')
     ];
 

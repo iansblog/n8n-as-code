@@ -47,7 +47,8 @@ packages/*/node_modules/
 
 # --- AI Context Artifacts (Generated) ---
 AGENTS.md
-n8n-schema.json
+# n8n-schema.json - removed (using n8n-nodes-enriched.json instead)
+# n8n-nodes-index.json - removed (using n8n-nodes-enriched.json instead)
 .cursorrules
 .clinerules
 .ai-rules.md

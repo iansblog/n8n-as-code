@@ -87,7 +87,6 @@ export function hasAIContextFiles(workspaceRoot: string): boolean {
 
   const aiFiles = [
     path.join(workspaceRoot, 'AGENTS.md'),
-    path.join(workspaceRoot, 'n8n-schema.json'),
     path.join(workspaceRoot, '.vscode', 'n8n.code-snippets')
   ];
 
