@@ -49,7 +49,19 @@ const CATEGORY_PATTERNS = {
  */
 function downloadContent(url) {
     return new Promise((resolve, reject) => {
-        https.get(url, (res) => {
+        const options = {
+            headers: {
+                'User-Agent': 'n8n-as-code/1.0 (Documentation Indexer)',
+                'Accept': 'text/plain, text/markdown, */*'
+            }
+        };
+        
+        https.get(url, options, (res) => {
+            // Handle redirects
+            if (res.statusCode === 301 || res.statusCode === 302) {
+                return downloadContent(res.headers.location).then(resolve).catch(reject);
+            }
+            
             if (res.statusCode !== 200) {
                 reject(new Error(`Failed to download ${url}: ${res.statusCode}`));
                 return;
