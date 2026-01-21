@@ -157,6 +157,13 @@ node ../../scripts/enrich-nodes-index.cjs  # Works without docs
 npm run build
 ```
 
+## 🎯 Find Guides
+
+```bash
+./n8n-agent guides "gmail to discord"
+```
+Quickly find workflow templates and tutorials matching your use case.
+
 ## 🎯 What Changed vs Old System
 
 ### Before (Old System - ❌ Broken)

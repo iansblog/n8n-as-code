@@ -73,6 +73,7 @@ export interface SearchDocsOptions {
     complexity?: 'beginner' | 'intermediate' | 'advanced';
     hasCodeExamples?: boolean;
     limit?: number;
+    filter?: (page: DocPage) => boolean;
 }
 
 /**
@@ -143,6 +144,7 @@ export class DocsProvider {
             if (options.category && page.category !== options.category) continue;
             if (options.complexity && page.metadata.complexity !== options.complexity) continue;
             if (options.hasCodeExamples && page.metadata.codeExamples === 0) continue;
+            if (options.filter && !options.filter(page)) continue;
 
             const docTitleClean = page.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const docContentClean = page.content.markdown.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -298,28 +300,27 @@ export class DocsProvider {
     }
 
     /**
-     * Get examples (tutorials/advanced-ai pages)
+     * Get guides (tutorials/advanced-ai/workflows pages)
      */
-    getExamples(query?: string, limit: number = 10): DocPage[] {
+    getGuides(query?: string, limit: number = 10): DocPage[] {
         this.loadDocs();
-        if (!this.docs) return [];
 
-        let examples = this.docs.pages.filter(p =>
-            p.category === 'tutorials' ||
-            p.category === 'advanced-ai' ||
-            p.subcategory === 'examples'
-        );
-
-        if (query) {
-            const queryLower = query.toLowerCase();
-            examples = examples.filter(p =>
-                p.title.toLowerCase().includes(queryLower) ||
-                p.metadata.keywords.some(k => k.toLowerCase().includes(queryLower)) ||
-                p.metadata.useCases.some(uc => uc.toLowerCase().includes(queryLower))
-            );
+        // If no query, return unfiltered list (limited)
+        if (!query) {
+            if (!this.docs) return [];
+            return this.docs.pages.filter(p =>
+                ['tutorials', 'advanced-ai', 'workflows'].includes(p.category) ||
+                p.subcategory === 'examples'
+            ).slice(0, limit);
         }
 
-        return examples.slice(0, limit);
+        // Use fuzzy search with category filter
+        return this.searchDocs(query, {
+            limit,
+            filter: (page) =>
+                ['tutorials', 'advanced-ai', 'workflows'].includes(page.category) ||
+                page.subcategory === 'examples'
+        });
     }
 
     /**

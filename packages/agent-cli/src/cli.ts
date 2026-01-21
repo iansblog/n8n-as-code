@@ -88,7 +88,7 @@ program
 // 2. Get Full Details - With hints
 program
     .command('get')
-    .description('Get complete node information (schema + documentation + examples)')
+    .description('Get complete node information (schema + documentation + guides)')
     .argument('<name>', 'Node name (exact, e.g. "googleSheets")')
     .action((name) => {
         try {
@@ -99,7 +99,7 @@ program
                 // Add helpful hints to stderr
                 console.error(chalk.cyan('\n💡 Next steps:'));
                 console.error(chalk.gray(`   - 'schema ${name}' for quick parameter reference`));
-                console.error(chalk.gray(`   - 'examples ${name}' to find usage examples`));
+                console.error(chalk.gray(`   - 'guides ${name}' to find usage guides`));
                 console.error(chalk.gray(`   - 'related ${name}' to discover similar nodes`));
                 console.error(chalk.gray(`   - 'docs <title>' to read full documentation`));
             } else {
@@ -290,7 +290,7 @@ program
                     requiredFields: [...new Set(props.filter((p: any) => p.required).map((p: any) => p.name))]
                 };
                 console.log(JSON.stringify(technicalSchema, null, 2));
-                console.error(chalk.cyan('\n💡 Hint: Use \'get ' + schema.name + '\' for complete documentation and examples'));
+                console.error(chalk.cyan('\n💡 Hint: Use \'get ' + schema.name + '\' for complete documentation and guides'));
             } else {
                 console.error(chalk.red(`Node '${name}' not found.`));
                 console.error(chalk.yellow(`Try running: './n8n-agent search "${name}"' to find the correct node name.`));
@@ -302,20 +302,20 @@ program
         }
     });
 
-// 7. Examples - Find examples and tutorials
+// 7. Guides - Find guides and tutorials
 program
-    .command('examples')
-    .description('Find workflow examples and tutorials')
+    .command('guides')
+    .description('Find helpful guides, tutorials, and walkthroughs')
     .argument('[query]', 'Search query')
-    .option('--list', 'List all examples')
+    .option('--list', 'List all guides')
     .option('--limit <limit>', 'Limit results', '10')
     .action((query, options) => {
         try {
-            const examples = docsProvider.getExamples(query, parseInt(options.limit));
-            console.log(JSON.stringify(examples, null, 2));
+            const guides = docsProvider.getGuides(query, parseInt(options.limit));
+            console.log(JSON.stringify(guides, null, 2));
 
-            if (examples.length > 0) {
-                console.error(chalk.cyan('\n💡 Hint: Use \'docs "<title>"\' to read the full example'));
+            if (guides.length > 0) {
+                console.error(chalk.cyan('\n💡 Hint: Use \'docs "<title>"\' to read the full guide'));
             }
         } catch (error: any) {
             console.error(chalk.red(error.message));

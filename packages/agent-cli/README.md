@@ -70,13 +70,13 @@ n8n-agent docs "Expressions"
 n8n-agent docs --list
 ```
 
-### `examples [query]` - 🎯 Find Examples
-Find workflow examples and tutorials.
+### `guides [query]` - 🎯 Find Guides
+Find workflow guides, tutorials, and walkthroughs.
 
 ```bash
-n8n-agent examples "email automation"
-n8n-agent examples "ai workflow"
-n8n-agent examples --list
+n8n-agent guides "email automation"
+n8n-agent guides "ai workflow"
+n8n-agent guides --list
 ```
 
 ### `related <query>` - 🔗 Discover Resources
