@@ -1,5 +1,11 @@
 # @n8n-as-code/agent-cli
 
+## 0.11.0
+
+### Minor Changes
+
+- significant expansion of the agent-cli capabilities, focusing on providing the AI agent with more resources (Community Workflows) and refining the existing CLI interface for better clarity.
+
 ## 0.10.0
 
 ### Minor Changes
