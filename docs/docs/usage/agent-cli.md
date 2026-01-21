@@ -15,6 +15,7 @@ The Agent CLI is designed to:
 - **Enable search capabilities** for finding specific nodes by name or description
 - **Generate JSON schemas** that can be used for code completion and validation
 - **Support AI context generation** for better workflow suggestions
+- **Access community workflows** - Search and download from 7000+ real-world workflows
 
 ## 📦 Installation
 

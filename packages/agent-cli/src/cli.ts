@@ -7,6 +7,7 @@ import { DocsProvider } from './services/docs-provider.js';
 import { KnowledgeSearch } from './services/knowledge-search.js';
 import { AiContextGenerator } from './services/ai-context-generator.js';
 import { SnippetGenerator } from './services/snippet-generator.js';
+import { registerWorkflowsCommand } from './commands/workflows.js';
 import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -381,5 +382,8 @@ program
             process.exit(1);
         }
     });
+
+// Register workflows command
+registerWorkflowsCommand(program);
 
 program.parse(process.argv);

@@ -2,3 +2,6 @@
 # n8n-as-code AI helpers
 n8n-agent
 n8n-agent.cmd
+
+# Generated workflow index (built at compile time)
+src/data/

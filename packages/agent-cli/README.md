@@ -79,6 +79,50 @@ n8n-agent guides "ai workflow"
 n8n-agent guides --list
 ```
 
+### `workflows` - 🌐 Search & Download Community Workflows
+Search and download workflows from the **n8nworkflows.xyz** community repository (7000+ workflows).
+
+#### `workflows search <query>`
+Search workflows using FlexSearch for high-relevance results.
+
+```bash
+n8n-agent workflows search "slack notification"
+n8n-agent workflows search "AI chatbot telegram"
+n8n-agent workflows search "invoice processing" --limit 20
+n8n-agent workflows search "google sheets" --json
+```
+
+#### `workflows info <id>`
+Display detailed information about a specific workflow.
+
+```bash
+n8n-agent workflows info 916
+# Shows: name, author, tags, download URL
+```
+
+#### `workflows install <id>`
+Download a workflow JSON file.
+
+```bash
+n8n-agent workflows install 916
+n8n-agent workflows install 4365 --output my-chatbot.json
+n8n-agent workflows install 8088 --force  # Overwrite existing
+```
+
+#### `workflows list`
+List available workflows (newest first).
+
+```bash
+n8n-agent workflows list
+n8n-agent workflows list --limit 50
+```
+
+**Features:**
+- 🔍 **7000+ workflows** indexed from n8nworkflows.xyz
+- ⚡ **Offline search** - FlexSearch powered, < 5ms latency
+- 📦 **Lightweight** - ~6MB index (~500KB compressed)
+- 🎯 **High relevance** - Smart keyword matching and ranking
+
 ### `related <query>` - 🔗 Discover Resources
 Find related nodes and documentation.
 
