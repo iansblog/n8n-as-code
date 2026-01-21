@@ -81,3 +81,5 @@ packages/agent-cli/src/assets/
 # n8n-as-code AI helpers
 
 conversation.md
+
+.temp_-workflows
