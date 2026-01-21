@@ -1,10 +1,16 @@
 import { Index } from 'flexsearch';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { readFileSync, existsSync } from 'fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Helper to get __dirname in ESM and CJS (bundled)
+const _filename = typeof __filename !== 'undefined'
+    ? __filename
+    : (typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '');
+
+const _dirname = typeof __dirname !== 'undefined'
+    ? __dirname
+    : (_filename ? dirname(_filename) : '');
 
 export interface WorkflowMetadata {
     id: number | string;
@@ -29,9 +35,52 @@ export class WorkflowRegistry {
     private searchIndex: Index;
     private workflowsById: Map<string | number, WorkflowMetadata>;
 
-    constructor() {
+    constructor(customIndexPath?: string) {
         // Load the index
-        const indexPath = join(__dirname, '../data/workflows-index.json');
+        let indexPath: string;
+        const envAssetsDir = process.env.N8N_AS_CODE_ASSETS_DIR;
+
+        if (customIndexPath) {
+            indexPath = customIndexPath;
+        } else if (envAssetsDir) {
+            indexPath = join(envAssetsDir, 'workflows-index.json');
+        } else {
+            // Fallback to relative path
+            const siblingPath = resolve(_dirname, '../data/workflows-index.json');
+            if (existsSync(siblingPath)) {
+                indexPath = siblingPath;
+            } else {
+                indexPath = resolve(_dirname, '../../data/workflows-index.json');
+            }
+        }
+
+        if (!existsSync(indexPath)) {
+            // If still not found and we are in a bundled environment, try assets dir as fallback
+            const fallbackPath = envAssetsDir
+                ? join(envAssetsDir, 'workflows-index.json')
+                : resolve(_dirname, '../assets/workflows-index.json');
+            
+            if (existsSync(fallbackPath)) {
+                indexPath = fallbackPath;
+            } else {
+                // Return empty index if not found to prevent crash, but log error
+                console.error(`Workflow index not found at ${indexPath}. AI workflow search will be disabled.`);
+                this.index = {
+                    generatedAt: new Date().toISOString(),
+                    repository: '',
+                    totalWorkflows: 0,
+                    workflows: []
+                };
+                this.workflowsById = new Map();
+                this.searchIndex = new Index({
+                    tokenize: 'forward',
+                    resolution: 9,
+                    cache: true,
+                });
+                return;
+            }
+        }
+
         const raw = readFileSync(indexPath, 'utf-8');
         this.index = JSON.parse(raw);
 
