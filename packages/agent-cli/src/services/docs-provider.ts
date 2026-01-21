@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 
 const _filename = typeof __filename !== 'undefined'
     ? __filename
-    : (typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '');
+    : (typeof import.meta !== 'undefined' && typeof import.meta.url === 'string' ? fileURLToPath(import.meta.url) : '');
 
 const _dirname = typeof __dirname !== 'undefined'
     ? __dirname
@@ -87,7 +87,7 @@ export class DocsProvider {
         const envAssetsDir = process.env.N8N_AS_CODE_ASSETS_DIR;
         if (customDocsPath) {
             this.docsPath = customDocsPath;
-        } else if (envAssetsDir) {
+        } else if (envAssetsDir && fs.existsSync(path.join(envAssetsDir, 'n8n-docs-complete.json'))) {
             this.docsPath = path.join(envAssetsDir, 'n8n-docs-complete.json');
         } else {
             // Check sibling first

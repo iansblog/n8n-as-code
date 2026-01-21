@@ -3,13 +3,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Helper to get __dirname in ESM
-const _filename = typeof import.meta !== 'undefined' && import.meta.url
-  ? fileURLToPath(import.meta.url)
-  : (typeof __filename !== 'undefined' ? __filename : '');
+const _filename = typeof __filename !== 'undefined'
+  ? __filename
+  : (typeof import.meta !== 'undefined' && typeof import.meta.url === 'string' ? fileURLToPath(import.meta.url) : '');
 
 const _dirname = typeof __dirname !== 'undefined'
   ? __dirname
-  : path.dirname(_filename as string);
+  : (_filename ? path.dirname(_filename as string) : '');
 
 export class AiContextGenerator {
   constructor() { }

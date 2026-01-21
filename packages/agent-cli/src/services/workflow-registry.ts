@@ -6,7 +6,7 @@ import { readFileSync, existsSync } from 'fs';
 // Helper to get __dirname in ESM and CJS (bundled)
 const _filename = typeof __filename !== 'undefined'
     ? __filename
-    : (typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '');
+    : (typeof import.meta !== 'undefined' && typeof import.meta.url === 'string' ? fileURLToPath(import.meta.url) : '');
 
 const _dirname = typeof __dirname !== 'undefined'
     ? __dirname
@@ -37,48 +37,45 @@ export class WorkflowRegistry {
 
     constructor(customIndexPath?: string) {
         // Load the index
-        let indexPath: string;
+        let indexPath: string | undefined;
         const envAssetsDir = process.env.N8N_AS_CODE_ASSETS_DIR;
 
         if (customIndexPath) {
             indexPath = customIndexPath;
         } else if (envAssetsDir) {
-            indexPath = join(envAssetsDir, 'workflows-index.json');
-        } else {
-            // Fallback to relative path
-            const siblingPath = resolve(_dirname, '../data/workflows-index.json');
-            if (existsSync(siblingPath)) {
-                indexPath = siblingPath;
-            } else {
-                indexPath = resolve(_dirname, '../../data/workflows-index.json');
+            const possiblePath = join(envAssetsDir, 'workflows-index.json');
+            if (existsSync(possiblePath)) {
+                indexPath = possiblePath;
             }
         }
 
-        if (!existsSync(indexPath)) {
-            // If still not found and we are in a bundled environment, try assets dir as fallback
-            const fallbackPath = envAssetsDir
-                ? join(envAssetsDir, 'workflows-index.json')
-                : resolve(_dirname, '../assets/workflows-index.json');
-            
-            if (existsSync(fallbackPath)) {
-                indexPath = fallbackPath;
-            } else {
-                // Return empty index if not found to prevent crash, but log error
-                console.error(`Workflow index not found at ${indexPath}. AI workflow search will be disabled.`);
-                this.index = {
-                    generatedAt: new Date().toISOString(),
-                    repository: '',
-                    totalWorkflows: 0,
-                    workflows: []
-                };
-                this.workflowsById = new Map();
-                this.searchIndex = new Index({
-                    tokenize: 'forward',
-                    resolution: 9,
-                    cache: true,
-                });
-                return;
+        // If not found yet, try local paths
+        if (!indexPath) {
+            // Fallback to assets directory relative to this file
+            indexPath = resolve(_dirname, '../assets/workflows-index.json');
+
+            if (!existsSync(indexPath)) {
+                // Try one level up just in case of different build structure
+                indexPath = resolve(_dirname, '../../assets/workflows-index.json');
             }
+        }
+
+        if (!indexPath || !existsSync(indexPath)) {
+            // Return empty index if not found to prevent crash, but log error
+            console.error(`Workflow index not found (searched ${indexPath || 'none'}). AI workflow search will be disabled.`);
+            this.index = {
+                generatedAt: new Date().toISOString(),
+                repository: '',
+                totalWorkflows: 0,
+                workflows: []
+            };
+            this.workflowsById = new Map();
+            this.searchIndex = new Index({
+                tokenize: 'forward',
+                resolution: 9,
+                cache: true,
+            });
+            return;
         }
 
         const raw = readFileSync(indexPath, 'utf-8');

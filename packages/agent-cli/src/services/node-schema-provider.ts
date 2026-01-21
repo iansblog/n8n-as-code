@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 // Helper to get __dirname in ESM and CJS (bundled)
 const _filename = typeof __filename !== 'undefined'
     ? __filename
-    : (typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '');
+    : (typeof import.meta !== 'undefined' && typeof import.meta.url === 'string' ? fileURLToPath(import.meta.url) : '');
 
 const _dirname = typeof __dirname !== 'undefined'
     ? __dirname
@@ -55,7 +55,7 @@ export class NodeSchemaProvider {
         const envAssetsDir = process.env.N8N_AS_CODE_ASSETS_DIR;
         if (customIndexPath) {
             this.enrichedIndexPath = customIndexPath;
-        } else if (envAssetsDir) {
+        } else if (envAssetsDir && fs.existsSync(path.join(envAssetsDir, 'n8n-nodes-technical.json'))) {
             this.enrichedIndexPath = path.join(envAssetsDir, 'n8n-nodes-technical.json');
         } else {
             const siblingPath = path.resolve(_dirname, '../assets/n8n-nodes-technical.json');
