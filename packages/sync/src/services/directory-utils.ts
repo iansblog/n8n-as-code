@@ -26,9 +26,9 @@ export function createHostSlug(host: string): string {
         .replace(/\.net$/, '')
         .replace(/\.org$/, '');
     
-    // Replace remaining dots and hyphens with underscores
+    // Replace remaining dots, hyphens, and colons with underscores
     return cleanHost
-        .replace(/[.-]/g, '_')
+        .replace(/[.\-:]/g, '_')
         .toLowerCase();
 }
 
